@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Iron Log</title>
+
+<!-- iOS home-screen / standalone app behavior -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Iron Log">
+<meta name="theme-color" content="#16181C">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#16181C;
+    --panel:#202329;
+    --panel-alt:#282c33;
+    --line:#33373f;
+    --text:#EDEBE6;
+    --muted:#8B8F98;
+    --accent:#E5484D;
+    --accent-dim:#7a2a2c;
+    --pr:#F2B705;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    overscroll-behavior-y:none;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .app{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  header.top{
+    padding:20px 20px 12px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--line);
+  }
+  header.top h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    letter-spacing:0.02em;
+    margin:0;
+  }
+  header.top h1 span{color:var(--accent);}
+  header.top .today{
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  main{
+    flex:1;
+    padding:16px 16px 96px;
+    overflow-y:auto;
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---- Log view ---- */
+  .entry-panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px;
+    margin-bottom:16px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+  .field input, .field select{
+    width:100%;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:16px;
+    font-family:'Inter',sans-serif;
+  }
+  .field input:focus, .field select:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+  .num-display{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:44px;
+    line-height:1;
+    letter-spacing:0.01em;
+  }
+  .num-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+
+  button.primary{
+    width:100%;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:14px;
+    font-size:15px;
+    font-weight:600;
+    font-family:'Inter',sans-serif;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  button.primary:active{background:#c93d42;}
+
+  .today-list{margin-top:4px;}
+  .set-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .set-row:last-child{border-bottom:none;}
+  .set-row .ex-name{font-size:14px; font-weight:500;}
+  .set-row .ex-detail{
+    font-family:'Oswald',sans-serif;
+    font-size:18px;
+    color:var(--text);
+  }
+  .set-row .ex-detail .unit{font-size:12px; color:var(--muted); font-family:'Inter',sans-serif;}
+  .del-btn{
+    background:none; border:none; color:var(--muted); font-size:18px; padding:4px 8px; cursor:pointer;
+  }
+
+  .section-label{
+    font-size:12px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin:20px 0 10px;
+  }
+
+  /* ---- History view ---- */
+  .day-group{margin-bottom:20px;}
+  .day-header{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    color:var(--muted);
+    margin-bottom:6px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:6px;
+  }
+
+  /* ---- Progress view ---- */
+  .picker-row{margin-bottom:16px;}
+  .stat-cards{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+  .stat-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+  }
+  .stat-card .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;}
+  .stat-card .value{font-family:'Oswald',sans-serif; font-size:28px; font-weight:600; margin-top:4px;}
+  .stat-card .value.pr{color:var(--pr);}
+
+  .chart-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px 12px;
+  }
+  .empty-state{
+    color:var(--muted);
+    font-size:14px;
+    text-align:center;
+    padding:40px 20px;
+    line-height:1.6;
+  }
+
+  /* ---- Tab bar ---- */
+  nav.tabbar{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    max-width:520px;
+    margin:0 auto;
+    background:rgba(22,24,28,0.92);
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);
+    display:flex;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav.tabbar button{
+    flex:1;
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:500;
+    padding:12px 0 10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+  }
+  nav.tabbar button .dot{
+    width:5px; height:5px; border-radius:50%; background:transparent;
+  }
+  nav.tabbar button.active{color:var(--text);}
+  nav.tabbar button.active .dot{background:var(--accent);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <h1>IRON<span>LOG</span></h1>
+    <div class="today" id="todayDate"></div>
+  </header>
+
+  <main>
+
+    <!-- LOG VIEW -->
+    <section class="view active" id="view-log">
+      <div class="entry-panel">
+        <div class="field">
+          <label for="exerciseInput">Exercise</label>
+          <input list="exerciseOptions" id="exerciseInput" placeholder="e.g. Back Squat" autocomplete="off">
+          <datalist id="exerciseOptions"></datalist>
+        </div>
+        <div class="row3">
+          <div class="field">
+            <label for="weightInput">Weight (lb)</label>
+            <input type="number" id="weightInput" inputmode="decimal" placeholder="0">
+          </div>
+          <div class="field">
+            <label for="repsInput">Reps</label>
+            <input type="number" id="repsInput" inputmode="numeric" placeholder="0">
+          </div>
+          <div class="field">
+            <label for="setsInput">Sets</label>
+            <input type="number" id="setsInput" inputmode="numeric" value="1">
+          </div>
+        </div>
+        <button class="primary" id="addSetBtn">Log set</button>
+      </div>
+
+      <div class="section-label">Today</div>
+      <div class="today-list" id="todayList">
+        <div class="empty-state">No sets logged yet today. Add one above.</div>
+      </div>
+    </section>
+
+    <!-- HISTORY VIEW -->
+    <section class="view" id="view-history">
+      <div id="historyList">
+        <div class="empty-state">Your logged sets will show up here, grouped by day.</div>
+      </div>
+    </section>
+
+    <!-- PROGRESS VIEW -->
+    <section class="view" id="view-progress">
+      <div class="picker-row">
+        <div class="field">
+          <label for="progressExercise">Exercise</label>
+          <select id="progressExercise"></select>
+        </div>
+      </div>
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="label">Best set (est. 1RM)</div>
+          <div class="value pr" id="bestOneRM">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Last logged</div>
+          <div class="value" id="lastLogged">—</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="progressChart" viewBox="0 0 100 40" width="100%" height="180" preserveAspectRatio="none"></svg>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab-btn active" data-view="log"><span>Log</span><span class="dot"></span></button>
+    <button class="tab-btn" data-view="history"><span>History</span><span class="dot"></span></button>
+    <button class="tab-btn" data-view="progress"><span>Progress</span><span class="dot"></span></button>
+  </nav>
+
+</div>
+
+<script>
+// ---------- Storage ----------
+const STORAGE_KEY = 'ironlog.sets.v1';
+
+function loadSets(){
+  try{
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  }catch(e){ return []; }
+}
+function saveSets(sets){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sets));
+}
+let sets = loadSets();
+
+// ---------- Helpers ----------
+function todayISO(){
+  return new Date().toISOString().slice(0,10);
+}
+function fmtDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+}
+function epley1RM(weight, reps){
+  if(reps <= 1) return weight;
+  return Math.round(weight * (1 + reps/30));
+}
+function uniqueExercises(){
+  const names = [...new Set(sets.map(s => s.exercise))];
+  return names.sort((a,b)=>a.localeCompare(b));
+}
+
+// ---------- Rendering: exercise autocomplete ----------
+function renderExerciseOptions(){
+  const dl = document.getElementById('exerciseOptions');
+  dl.innerHTML = uniqueExercises().map(n => `<option value="${escapeHtml(n)}">`).join('');
+  const sel = document.getElementById('progressExercise');
+  const names = uniqueExercises();
+  const prevVal = sel.value;
+  sel.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if(names.includes(prevVal)) sel.value = prevVal;
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- Rendering: today list ----------
+function renderTodayList(){
+  const list = document.getElementById('todayList');
+  const t = todayISO();
+  const todays = sets.filter(s => s.date === t).sort((a,b)=> b.ts - a.ts);
+  if(todays.length === 0){
+    list.innerHTML = '<div class="empty-state">No sets logged yet today. Add one above.</div>';
+    return;
+  }
+  list.innerHTML = todays.map(s => `
+    <div class="set-row" data-id="${s.id}">
+      <div class="ex-name">${escapeHtml(s.exercise)}</div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div class="ex-detail">${s.weight}<span class="unit">lb</span> × ${s.reps}<span class="unit">${s.setCount>1 ? ' × '+s.setCount+' sets':''}</span></div>
+        <button class="del-btn" onclick="deleteSet('${s.id}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ---------- Rendering: history ----------
+function renderHistory(){
+  const container = document.getElementById('historyList');
+  if(sets.length === 0){
+    container.innerHTML = '<div class="empty-state">Your logged sets will show up here, grouped by day.</div>';
+    return;
+  }
+  const byDate = {};
+  sets.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(s); });
+  const dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
+  container.innerHTML = dates.map(date => `
+    <div class="day-group">
+      <div class="day-header">${fmtDate(date)}</div>
+      ${byDate[date].sort((a,b)=>b.ts-a.ts).map(s => `
+        <div class="set-row" data-id="${s.id}">
+          <div class="ex-name">${escapeHtml(s.exercise)}</div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div class="ex-detail">${s.weight}<span class="unit">lb</span> × ${s.reps}${s.setCount>1 ? ' × '+s.setCount+'<span class=\"unit\"> sets</span>':''}</div>
+            <button class="del-btn" onclick="deleteSet('${s.id}')">✕</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+// ---------- Rendering: progress ----------
+function renderProgress(){
+  const sel = document.getElementById('progressExercise');
+  const exercise = sel.value;
+  const bestEl = document.getElementById('bestOneRM');
+  const lastEl = document.getElementById('lastLogged');
+  const chart = document.getElementById('progressChart');
+
+  if(!exercise){
+    bestEl.textContent = '—';
+    lastEl.textContent = '—';
+    chart.innerHTML = '<foreignObject x="0" y="0" width="100" height="40"><div xmlns="http://www.w3.org/1999/xhtml" style="color:#8B8F98; font-family:Inter,sans-serif; font-size:4px; text-align:center; padding-top:16px;">Log a set to see progress here.</div></foreignObject>';
+    return;
+  }
+
+  const rows = sets.filter(s => s.exercise === exercise).sort((a,b)=>a.ts-b.ts);
+  const best = Math.max(...rows.map(r => epley1RM(r.weight, r.reps)));
+  bestEl.textContent = best + ' lb';
+  const last = rows[rows.length-1];
+  lastEl.textContent = last ? `${last.weight}×${last.reps}` : '—';
+
+  // simple line chart of estimated 1RM over time
+  const points = rows.map(r => epley1RM(r.weight, r.reps));
+  if(points.length < 2){
+    chart.innerHTML = points.length === 1
+      ? '<foreignObject x="0" y="0" width="100" height="40"><div xmlns="http://www.w3.org/1999/xhtml" style="color:#8B8F98; font-family:Inter,sans-serif; font-size:4px; text-align:center; padding-top:16px;">Log one more set to see a trend line.</div></foreignObject>'
+      : '';
+    return;
+  }
+  const min = Math.min(...points), max = Math.max(...points);
+  const range = max - min || 1;
+  const stepX = 100 / (points.length - 1);
+  const coords = points.map((p,i) => {
+    const x = i * stepX;
+    const y = 38 - ((p - min) / range) * 34; // padding top/bottom
+    return [x,y];
+  });
+  const path = coords.map((c,i) => (i===0?'M':'L') + c[0].toFixed(2) + ',' + c[1].toFixed(2)).join(' ');
+  const dots = coords.map(c => `<circle cx="${c[0].toFixed(2)}" cy="${c[1].toFixed(2)}" r="1.4" fill="#E5484D"/>`).join('');
+  chart.innerHTML = `<path d="${path}" fill="none" stroke="#E5484D" stroke-width="0.8" vector-effect="non-scaling-stroke"/>${dots}`;
+}
+
+// ---------- Actions ----------
+function addSet(){
+  const exercise = document.getElementById('exerciseInput').value.trim();
+  const weight = parseFloat(document.getElementById('weightInput').value);
+  const reps = parseInt(document.getElementById('repsInput').value, 10);
+  const setCount = parseInt(document.getElementById('setsInput').value, 10) || 1;
+
+  if(!exercise || isNaN(weight) || isNaN(reps)){
+    alert('Fill in exercise, weight, and reps.');
+    return;
+  }
+
+  sets.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    exercise, weight, reps, setCount,
+    date: todayISO(),
+    ts: Date.now()
+  });
+  saveSets(sets);
+
+  document.getElementById('weightInput').value = '';
+  document.getElementById('repsInput').value = '';
+  document.getElementById('setsInput').value = '1';
+
+  renderAll();
+}
+function deleteSet(id){
+  sets = sets.filter(s => s.id !== id);
+  saveSets(sets);
+  renderAll();
+}
+window.deleteSet = deleteSet;
+
+function renderAll(){
+  renderExerciseOptions();
+  renderTodayList();
+  renderHistory();
+  renderProgress();
+}
+
+// ---------- Tab navigation ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+    if(btn.dataset.view === 'progress') renderProgress();
+  });
+});
+document.getElementById('progressExercise').addEventListener('change', renderProgress);
+document.getElementById('addSetBtn').addEventListener('click', addSet);
+
+// ---------- Init ----------
+document.getElementById('todayDate').textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
+renderAll();
+
+// ---------- Service worker (offline support) ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
