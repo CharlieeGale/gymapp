@@ -633,12 +633,12 @@
       </div>
       <div class="row2">
         <div class="field">
-          <label for="profileHeight">Height (in)</label>
-          <input type="number" id="profileHeight" inputmode="numeric" placeholder="70">
+          <label for="profileHeight">Height (cm)</label>
+          <input type="number" id="profileHeight" inputmode="numeric" placeholder="178">
         </div>
         <div class="field">
           <label for="profileWeight">Current weight (kg)</label>
-          <input type="number" id="profileWeight" inputmode="decimal" placeholder="180">
+          <input type="number" id="profileWeight" inputmode="decimal" placeholder="82">
         </div>
       </div>
       <div class="field">
@@ -660,7 +660,7 @@
       </div>
       <div class="field" id="profileRateField">
         <label for="profileRate">Target rate (kg/week)</label>
-        <input type="number" id="profileRate" inputmode="decimal" step="0.1" value="1" placeholder="1">
+        <input type="number" id="profileRate" inputmode="decimal" step="0.1" value="0.5" placeholder="0.5">
       </div>
 
       <button class="primary" id="saveProfileBtn">Save and calculate</button>
@@ -1026,17 +1026,17 @@ function stopScanner(){
 // weight trend, then back-calculate real expenditure from
 // logged intake vs. that trend, rather than a fixed formula.)
 // =========================================================
-const KCAL_PER_kg = 3500;
+const KCAL_PER_KG = 7700; // approx. energy density of 1kg of stored body mass
 const TREND_ALPHA = 0.1; // smoothing factor for the weight trend (lower = smoother/slower)
 
 function loadProfile(){ return loadObj(PROFILE_KEY); }
 function saveProfile(p){ saveObj(PROFILE_KEY, p); }
 
-function upsertWeightEntry(weightkg){
+function upsertWeightEntry(weightKg){
   const t = todayISO();
   const idx = weightEntries.findIndex(w => w.date === t);
-  if(idx >= 0){ weightEntries[idx].weight = weightkg; }
-  else { weightEntries.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), weight: weightkg, date: t, ts: Date.now() }); }
+  if(idx >= 0){ weightEntries[idx].weight = weightKg; }
+  else { weightEntries.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), weight: weightKg, date: t, ts: Date.now() }); }
   saveJSON(WEIGHT_KEY, weightEntries);
 }
 
@@ -1065,11 +1065,11 @@ function getTodayFoodTotals(){
   }, { kcal:0, protein:0, carbs:0, fat:0 });
 }
 
-// Mifflin-St Jeor (imperial), used only until enough real data exists.
-function computeInitialTDEE(profile, weightkg){
+// Mifflin-St Jeor (metric), used only until enough real data exists.
+function computeInitialTDEE(profile, weightKg){
   const bmr = profile.sex === 'male'
-    ? 4.536*weightkg + 15.88*profile.heightIn - 5*profile.age + 5
-    : 4.536*weightkg + 15.88*profile.heightIn - 5*profile.age - 161;
+    ? 10*weightKg + 6.25*profile.heightCm - 5*profile.age + 5
+    : 10*weightKg + 6.25*profile.heightCm - 5*profile.age - 161;
   const mult = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725 }[profile.activity] || 1.375;
   return Math.round(bmr * mult);
 }
@@ -1088,20 +1088,20 @@ function computeAdaptiveTDEE(trendSeries){
   const daysSpan = (new Date(last) - new Date(first)) / 86400000;
   if(daysSpan < 6) return null;
 
-  const weightChangekg = trendMap[last] - trendMap[first];
+  const weightChangeKg = trendMap[last] - trendMap[first];
   const avgIntake = windowDates.reduce((sum,d) => sum + foodTotals[d], 0) / windowDates.length;
-  const dailyEnergyBalance = (weightChangekg * KCAL_PER_kg) / daysSpan;
+  const dailyEnergyBalance = (weightChangeKg * KCAL_PER_KG) / daysSpan;
   return Math.round(avgIntake - dailyEnergyBalance);
 }
 
-function computeTargets(tdee, profile, currentWeightkg){
+function computeTargets(tdee, profile, currentWeightKg){
   let targetCalories = tdee;
-  if(profile.goal === 'lose') targetCalories = tdee - (profile.ratekgWk * KCAL_PER_kg) / 7;
-  else if(profile.goal === 'gain') targetCalories = tdee + (profile.ratekgWk * KCAL_PER_kg) / 7;
+  if(profile.goal === 'lose') targetCalories = tdee - (profile.rateKgWk * KCAL_PER_KG) / 7;
+  else if(profile.goal === 'gain') targetCalories = tdee + (profile.rateKgWk * KCAL_PER_KG) / 7;
   targetCalories = Math.max(Math.round(targetCalories), 1200); // safety floor
 
-  const proteinPerkg = profile.goal === 'gain' ? 0.8 : 1.0;
-  const proteinG = Math.round((currentWeightkg || profile.weightkg) * proteinPerkg);
+  const proteinPerKg = profile.goal === 'gain' ? 1.8 : 2.2; // g protein per kg bodyweight
+  const proteinG = Math.round((currentWeightKg || profile.weightKg) * proteinPerKg);
   const fatG = Math.round((targetCalories * 0.25) / 9);
   const carbsG = Math.max(Math.round((targetCalories - proteinG*4 - fatG*9) / 4), 0);
 
@@ -1117,7 +1117,7 @@ function maybeRefreshTargets(forced){
   if(!profile) return null;
 
   const trendSeries = computeTrendSeries();
-  const currentWeight = trendSeries.length ? trendSeries[trendSeries.length-1].trendWeight : profile.weightkg;
+  const currentWeight = trendSeries.length ? trendSeries[trendSeries.length-1].trendWeight : profile.weightKg;
   const adaptive = computeAdaptiveTDEE(trendSeries);
 
   let snapshot = loadObj(TDEE_KEY);
@@ -1218,11 +1218,11 @@ function openProfileModal(){
   if(profile){
     document.getElementById('profileSex').value = profile.sex;
     document.getElementById('profileAge').value = profile.age;
-    document.getElementById('profileHeight').value = profile.heightIn;
-    document.getElementById('profileWeight').value = profile.weightkg;
+    document.getElementById('profileHeight').value = profile.heightCm;
+    document.getElementById('profileWeight').value = profile.weightKg;
     document.getElementById('profileActivity').value = profile.activity;
     document.getElementById('profileGoal').value = profile.goal;
-    document.getElementById('profileRate').value = profile.ratekgWk;
+    document.getElementById('profileRate').value = profile.rateKgWk;
   }
   toggleRateField();
   document.getElementById('profileModal').style.display = 'flex';
@@ -1235,19 +1235,19 @@ function toggleRateField(){
 function saveProfileForm(){
   const sex = document.getElementById('profileSex').value;
   const age = parseInt(document.getElementById('profileAge').value, 10);
-  const heightIn = parseFloat(document.getElementById('profileHeight').value);
-  const weightkg = parseFloat(document.getElementById('profileWeight').value);
+  const heightCm = parseFloat(document.getElementById('profileHeight').value);
+  const weightKg = parseFloat(document.getElementById('profileWeight').value);
   const activity = document.getElementById('profileActivity').value;
   const goal = document.getElementById('profileGoal').value;
-  const ratekgWk = parseFloat(document.getElementById('profileRate').value) || 0;
+  const rateKgWk = parseFloat(document.getElementById('profileRate').value) || 0;
 
-  if(!age || !heightIn || !weightkg){
+  if(!age || !heightCm || !weightKg){
     alert('Fill in age, height, and weight.');
     return;
   }
-  saveProfile({ sex, age, heightIn, weightkg, activity, goal, ratekgWk });
+  saveProfile({ sex, age, heightCm, weightKg, activity, goal, rateKgWk });
   if(!weightEntries.find(w => w.date === todayISO())){
-    upsertWeightEntry(weightkg); // seed today's weigh-in from the form if not already logged
+    upsertWeightEntry(weightKg); // seed today's weigh-in from the form if not already logged
   }
   maybeRefreshTargets(true);
   closeProfileModal();
