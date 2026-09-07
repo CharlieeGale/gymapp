@@ -1,0 +1,40 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint and format check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The repository intentionally has no package.json: linters are pinned
+      # here and fetched on demand, so contributors need nothing installed.
+      - name: ESLint
+        run: npx --yes eslint@9 .
+
+      - name: Stylelint
+        run: >-
+          npx --yes -p stylelint@16 -p stylelint-config-standard@36
+          stylelint "css/**/*.css"
+
+      - name: HTMLHint
+        run: npx --yes htmlhint@1 index.html
+
+      - name: Prettier
+        run: npx --yes prettier@3 --check .

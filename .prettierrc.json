@@ -1,0 +1,11 @@
+{
+  "printWidth": 100,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": ["*.html", "*.json", "*.yml", "*.yaml", "*.md"],
+      "options": { "singleQuote": false }
+    }
+  ]
+}

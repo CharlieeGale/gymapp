@@ -1,1321 +1,479 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Iron Log</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Iron Log — workout and nutrition tracker</title>
+    <meta
+      name="description"
+      content="Offline-first gym tracker: log sets, track body weight, and get calorie targets that adapt to your own data."
+    />
 
-<!-- iOS home-screen / standalone app behavior -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Iron Log">
-<meta name="theme-color" content="#16181C">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="manifest" href="manifest.json">
+    <!-- iOS home-screen / standalone app behaviour -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Iron Log" />
+    <meta name="theme-color" content="#16181C" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="icon" href="icon-192.png" />
+    <link rel="manifest" href="manifest.json" />
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <noscript>
+      <p class="noscript">Iron Log needs JavaScript enabled to log and display your training.</p>
+    </noscript>
 
-<style>
-  :root{
-    --bg:#16181C;
-    --panel:#202329;
-    --panel-alt:#282c33;
-    --line:#33373f;
-    --text:#EDEBE6;
-    --muted:#8B8F98;
-    --accent:#E5484D;
-    --accent-dim:#7a2a2c;
-    --pr:#F2B705;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:'Inter',sans-serif;
-    overscroll-behavior-y:none;
-    padding-top:env(safe-area-inset-top);
-    padding-bottom:env(safe-area-inset-bottom);
-  }
-  .app{
-    max-width:520px;
-    margin:0 auto;
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
-  }
-  header.top{
-    padding:20px 20px 12px;
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    border-bottom:1px solid var(--line);
-  }
-  header.top h1{
-    font-family:'Oswald',sans-serif;
-    font-weight:600;
-    font-size:22px;
-    letter-spacing:0.02em;
-    margin:0;
-  }
-  header.top h1 span{color:var(--accent);}
-  header.top .today{
-    font-size:13px;
-    color:var(--muted);
-  }
+    <div class="app" id="app-root">
+      <header class="top">
+        <h1>IRON<span>LOG</span></h1>
+        <p class="today" id="todayDate"></p>
+      </header>
 
-  main{
-    flex:1;
-    padding:16px 16px 96px;
-    overflow-y:auto;
-  }
-  .view{display:none;}
-  .view.active{display:block;}
+      <!-- Status messages. Announced politely rather than blocking with alert(). -->
+      <div id="toast" class="toast-host" role="status" aria-live="polite" hidden></div>
 
-  /* ---- Shared panels ---- */
-  .entry-panel{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:18px;
-    margin-bottom:16px;
-  }
-  .field{margin-bottom:14px;}
-  .field label{
-    display:block;
-    font-size:12px;
-    color:var(--muted);
-    margin-bottom:6px;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-  }
-  .field input, .field select{
-    width:100%;
-    background:var(--panel-alt);
-    border:1px solid var(--line);
-    color:var(--text);
-    border-radius:8px;
-    padding:12px 14px;
-    font-size:16px;
-    font-family:'Inter',sans-serif;
-  }
-  .field input:focus, .field select:focus{
-    outline:none;
-    border-color:var(--accent);
-  }
-  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
-  .num-display{
-    font-family:'Oswald',sans-serif;
-    font-weight:700;
-    font-size:44px;
-    line-height:1;
-    letter-spacing:0.01em;
-  }
-  .num-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+      <main>
+        <!-- LOG VIEW (workouts) -->
+        <section
+          class="view active"
+          id="view-log"
+          role="tabpanel"
+          aria-labelledby="tab-log"
+          tabindex="0"
+        >
+          <h2 class="visually-hidden">Log a set</h2>
 
-  button.primary{
-    width:100%;
-    background:var(--accent);
-    color:#fff;
-    border:none;
-    border-radius:8px;
-    padding:14px;
-    font-size:15px;
-    font-weight:600;
-    font-family:'Inter',sans-serif;
-    cursor:pointer;
-    margin-top:4px;
-  }
-  button.primary:active{background:#c93d42;}
-  button.secondary{
-    width:100%;
-    background:transparent;
-    color:var(--text);
-    border:1px solid var(--line);
-    border-radius:8px;
-    padding:13px;
-    font-size:14px;
-    font-weight:500;
-    font-family:'Inter',sans-serif;
-    cursor:pointer;
-  }
-
-  .today-list{margin-top:4px;}
-  .set-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px 0;
-    border-bottom:1px solid var(--line);
-  }
-  .set-row:last-child{border-bottom:none;}
-  .set-row .ex-name{font-size:14px; font-weight:500;}
-  .set-row .ex-sub{font-size:11px; color:var(--muted); margin-top:2px;}
-  .set-row .ex-detail{
-    font-family:'Oswald',sans-serif;
-    font-size:18px;
-    color:var(--text);
-  }
-  .set-row .ex-detail .unit{font-size:12px; color:var(--muted); font-family:'Inter',sans-serif;}
-  .del-btn{
-    background:none; border:none; color:var(--muted); font-size:18px; padding:4px 8px; cursor:pointer;
-  }
-
-  .section-label{
-    font-size:12px;
-    color:var(--muted);
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    margin:20px 0 10px;
-  }
-
-  /* ---- History view ---- */
-  .day-group{margin-bottom:20px;}
-  .day-header{
-    font-family:'Oswald',sans-serif;
-    font-size:15px;
-    color:var(--muted);
-    margin-bottom:6px;
-    border-bottom:1px solid var(--line);
-    padding-bottom:6px;
-  }
-
-  /* ---- Progress view ---- */
-  .picker-row{margin-bottom:16px;}
-  .stat-cards{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
-  .stat-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:14px;
-  }
-  .stat-card .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;}
-  .stat-card .value{font-family:'Oswald',sans-serif; font-size:28px; font-weight:600; margin-top:4px;}
-  .stat-card .value.pr{color:var(--pr);}
-
-  .chart-wrap{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:16px 12px;
-  }
-  .empty-state{
-    color:var(--muted);
-    font-size:14px;
-    text-align:center;
-    padding:40px 20px;
-    line-height:1.6;
-  }
-
-  /* ---- Nutrition dashboard ---- */
-  .setup-banner{
-    background:var(--panel);
-    border:1px dashed var(--line);
-    border-radius:10px;
-    padding:20px;
-    text-align:center;
-    margin-bottom:16px;
-  }
-  .setup-banner p{color:var(--muted); font-size:13px; margin:0 0 14px;}
-
-  .weight-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:16px;
-    margin-bottom:16px;
-  }
-  .weight-card-top{
-    display:flex;
-    align-items:flex-end;
-    justify-content:space-between;
-    margin-bottom:12px;
-  }
-  .weight-quick-log{
-    display:flex;
-    gap:8px;
-  }
-  .weight-quick-log input{
-    width:90px;
-    background:var(--panel-alt);
-    border:1px solid var(--line);
-    color:var(--text);
-    border-radius:8px;
-    padding:10px 12px;
-    font-size:15px;
-  }
-  .weight-quick-log button{
-    background:var(--accent);
-    color:#fff;
-    border:none;
-    border-radius:8px;
-    padding:0 16px;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
-  }
-  .trend-readout{
-    font-family:'Oswald',sans-serif;
-    font-size:26px;
-    font-weight:600;
-  }
-  .trend-readout .sub{
-    display:block;
-    font-family:'Inter',sans-serif;
-    font-size:11px;
-    color:var(--muted);
-    font-weight:400;
-    margin-top:2px;
-  }
-
-  .targets-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:16px;
-    margin-bottom:16px;
-  }
-  .targets-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    margin-bottom:4px;
-  }
-  .tdee-line{font-size:12px; color:var(--muted);}
-  .text-btn{
-    background:none;
-    border:none;
-    color:var(--accent);
-    font-size:12px;
-    font-weight:600;
-    cursor:pointer;
-    padding:0;
-  }
-  .bar-track{
-    height:8px;
-    background:var(--panel-alt);
-    border-radius:4px;
-    overflow:hidden;
-    margin:10px 0 4px;
-  }
-  .bar-fill{
-    height:100%;
-    background:var(--accent);
-    border-radius:4px;
-    transition:width 0.3s ease;
-  }
-  .calorie-readout{
-    font-family:'Oswald',sans-serif;
-    font-size:22px;
-    font-weight:600;
-  }
-  .macro-row{
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:10px;
-    margin-top:14px;
-  }
-  .macro-cell{
-    background:var(--panel-alt);
-    border-radius:8px;
-    padding:10px;
-    text-align:center;
-  }
-  .macro-cell .m-label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;}
-  .macro-cell .m-value{font-family:'Oswald',sans-serif; font-size:15px; margin-top:4px;}
-
-  /* ---- Food search results ---- */
-  .search-results{margin-top:10px;}
-  .search-result-row{
-    padding:10px 12px;
-    background:var(--panel-alt);
-    border:1px solid var(--line);
-    border-radius:8px;
-    margin-bottom:6px;
-    cursor:pointer;
-    font-size:13px;
-  }
-  .search-result-row .sr-name{font-weight:500;}
-  .search-result-row .sr-sub{color:var(--muted); font-size:11px; margin-top:2px;}
-
-  /* ---- Modals (scanner + add-food) ---- */
-  .scanner-modal{
-    position:fixed; inset:0;
-    background:rgba(10,11,13,0.96);
-    z-index:1000;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .scanner-modal video{
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    object-fit:cover;
-  }
-  .scanner-frame{
-    position:relative;
-    width:70%;
-    aspect-ratio:1.6/1;
-    border:2px solid var(--accent);
-    border-radius:12px;
-    box-shadow:0 0 0 999px rgba(10,11,13,0.5);
-  }
-  .scanner-hint{
-    position:absolute;
-    bottom:14%;
-    left:0; right:0;
-    text-align:center;
-    color:var(--text);
-    font-size:13px;
-  }
-  .scanner-close{
-    position:absolute;
-    top:calc(env(safe-area-inset-top) + 16px);
-    right:20px;
-    background:rgba(32,35,41,0.9);
-    border:1px solid var(--line);
-    color:var(--text);
-    width:36px; height:36px;
-    border-radius:50%;
-    font-size:16px;
-    cursor:pointer;
-  }
-  .add-food-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:22px;
-    width:85%;
-    max-width:360px;
-  }
-  .add-food-card h3{
-    font-family:'Oswald',sans-serif;
-    font-weight:500;
-    font-size:18px;
-    margin:0 0 16px;
-  }
-  .profile-card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:22px;
-    width:88%;
-    max-width:380px;
-    max-height:82vh;
-    overflow-y:auto;
-  }
-  .profile-card h3{
-    font-family:'Oswald',sans-serif;
-    font-weight:500;
-    font-size:18px;
-    margin:0 0 4px;
-  }
-  .profile-card .p-sub{
-    font-size:12px;
-    color:var(--muted);
-    margin:0 0 16px;
-  }
-  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-
-  /* ---- Tab bar ---- */
-  nav.tabbar{
-    position:fixed;
-    bottom:0; left:0; right:0;
-    max-width:520px;
-    margin:0 auto;
-    background:rgba(22,24,28,0.92);
-    backdrop-filter:blur(12px);
-    border-top:1px solid var(--line);
-    display:flex;
-    padding-bottom:env(safe-area-inset-bottom);
-  }
-  nav.tabbar button{
-    flex:1;
-    background:none;
-    border:none;
-    color:var(--muted);
-    font-family:'Inter',sans-serif;
-    font-size:11.5px;
-    font-weight:500;
-    padding:12px 0 10px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:4px;
-    cursor:pointer;
-  }
-  nav.tabbar button .dot{
-    width:5px; height:5px; border-radius:50%; background:transparent;
-  }
-  nav.tabbar button.active{color:var(--text);}
-  nav.tabbar button.active .dot{background:var(--accent);}
-</style>
-</head>
-<body>
-<div class="app">
-
-  <header class="top">
-    <h1>IRON<span>LOG</span></h1>
-    <div class="today" id="todayDate"></div>
-  </header>
-
-  <main>
-
-    <!-- LOG VIEW (workouts) -->
-    <section class="view active" id="view-log">
-      <div class="entry-panel">
-        <div class="field">
-          <label for="exerciseInput">Exercise</label>
-          <input list="exerciseOptions" id="exerciseInput" placeholder="e.g. Back Squat" autocomplete="off">
-          <datalist id="exerciseOptions"></datalist>
-        </div>
-        <div class="row3">
-          <div class="field">
-            <label for="weightInput">Weight (kg)</label>
-            <input type="number" id="weightInput" inputmode="decimal" placeholder="0">
-          </div>
-          <div class="field">
-            <label for="repsInput">Reps</label>
-            <input type="number" id="repsInput" inputmode="numeric" placeholder="0">
-          </div>
-          <div class="field">
-            <label for="setsInput">Sets</label>
-            <input type="number" id="setsInput" inputmode="numeric" value="1">
-          </div>
-        </div>
-        <button class="primary" id="addSetBtn">Log set</button>
-      </div>
-
-      <div class="section-label">Today</div>
-      <div class="today-list" id="todayList">
-        <div class="empty-state">No sets logged yet today. Add one above.</div>
-      </div>
-    </section>
-
-    <!-- FOOD / NUTRITION VIEW -->
-    <section class="view" id="view-food">
-
-      <!-- Shown until a profile is set up -->
-      <div class="setup-banner" id="profileSetupBanner">
-        <p>Set up your stats once and Iron Log will estimate your calorie needs, then refine them automatically as you log weight and food.</p>
-        <button class="primary" id="openProfileBtn" style="margin-top:0;">Set up my targets</button>
-      </div>
-
-      <div id="nutritionDashboard" style="display:none;">
-
-        <!-- Weight trend -->
-        <div class="weight-card">
-          <div class="weight-card-top">
-            <div>
-              <div class="trend-readout" id="trendWeightValue">—
-                <span class="sub" id="trendWeightSub">Log a weigh-in to start a trend</span>
+          <form class="entry-panel" id="addSetForm" novalidate>
+            <div class="field">
+              <label for="exerciseInput">Exercise</label>
+              <input
+                list="exerciseOptions"
+                id="exerciseInput"
+                name="exercise"
+                placeholder="e.g. Back Squat"
+                autocomplete="off"
+                required
+              />
+              <datalist id="exerciseOptions"></datalist>
+            </div>
+            <div class="row3">
+              <div class="field">
+                <label for="weightInput">Weight (kg)</label>
+                <input
+                  type="number"
+                  id="weightInput"
+                  name="weight"
+                  inputmode="decimal"
+                  min="0"
+                  step="0.5"
+                  placeholder="0"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label for="repsInput">Reps</label>
+                <input
+                  type="number"
+                  id="repsInput"
+                  name="reps"
+                  inputmode="numeric"
+                  min="1"
+                  step="1"
+                  placeholder="0"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label for="setsInput">Sets</label>
+                <input
+                  type="number"
+                  id="setsInput"
+                  name="sets"
+                  inputmode="numeric"
+                  min="1"
+                  step="1"
+                  value="1"
+                />
               </div>
             </div>
-            <div class="weight-quick-log">
-              <input type="number" id="weightInputField" inputmode="decimal" placeholder="kg">
-              <button id="logWeightBtn">Log</button>
+            <button class="primary" type="submit">Log set</button>
+          </form>
+
+          <h3 class="section-label">Today</h3>
+          <div class="today-list" id="todayList"></div>
+        </section>
+
+        <!-- NUTRITION VIEW -->
+        <section
+          class="view"
+          id="view-food"
+          role="tabpanel"
+          aria-labelledby="tab-food"
+          tabindex="0"
+        >
+          <h2 class="visually-hidden">Nutrition</h2>
+
+          <!-- Shown until a profile is set up -->
+          <div class="setup-banner" id="profileSetupBanner">
+            <p>
+              Set up your stats once and Iron Log will estimate your calorie needs, then refine them
+              automatically as you log weight and food.
+            </p>
+            <button class="primary" type="button" id="openProfileBtn">Set up my targets</button>
+          </div>
+
+          <div id="nutritionDashboard" hidden>
+            <!-- Weight trend -->
+            <div class="weight-card">
+              <div class="weight-card-top">
+                <div class="trend-readout">
+                  <span class="trend-value" id="trendWeightValue">—</span>
+                  <span class="sub" id="trendWeightSub">Log a weigh-in to start a trend</span>
+                </div>
+                <form class="weight-quick-log" id="weighInForm" novalidate>
+                  <label class="visually-hidden" for="weightInputField">
+                    Today's weight in kilograms
+                  </label>
+                  <input
+                    type="number"
+                    id="weightInputField"
+                    name="weight"
+                    inputmode="decimal"
+                    min="0"
+                    step="0.1"
+                    placeholder="kg"
+                  />
+                  <button type="submit">Log</button>
+                </form>
+              </div>
+              <div class="chart-wrap chart-wrap--flush">
+                <svg id="weightChart" viewBox="0 0 100 40" width="100%" height="90"></svg>
+              </div>
+            </div>
+
+            <!-- Adaptive targets -->
+            <div class="targets-card">
+              <div class="targets-head">
+                <p class="calorie-readout" id="calorieProgressText">0 / 0 kcal</p>
+                <button class="text-btn" type="button" id="recalcTargetsBtn">Recalculate</button>
+              </div>
+              <p class="tdee-line" id="tdeeLine">Estimating your expenditure…</p>
+              <div
+                class="bar-track"
+                id="calorieBar"
+                role="progressbar"
+                aria-label="Calories consumed against target"
+                aria-valuemin="0"
+                aria-valuenow="0"
+                aria-valuemax="0"
+              >
+                <div class="bar-fill"></div>
+              </div>
+              <div class="macro-row">
+                <div class="macro-cell">
+                  <p class="m-label" id="label-protein">Protein</p>
+                  <p class="m-value" id="proteinTargetText" aria-labelledby="label-protein">
+                    — / —
+                  </p>
+                </div>
+                <div class="macro-cell">
+                  <p class="m-label" id="label-carbs">Carbs</p>
+                  <p class="m-value" id="carbsTargetText" aria-labelledby="label-carbs">— / —</p>
+                </div>
+                <div class="macro-cell">
+                  <p class="m-label" id="label-fat">Fat</p>
+                  <p class="m-value" id="fatTargetText" aria-labelledby="label-fat">— / —</p>
+                </div>
+              </div>
+              <div class="targets-foot">
+                <button class="text-btn" type="button" id="editProfileBtn">
+                  Edit goal / stats
+                </button>
+              </div>
             </div>
           </div>
-          <svg id="weightChart" viewBox="0 0 100 40" width="100%" height="90" preserveAspectRatio="none"></svg>
+
+          <form class="entry-panel" id="foodSearchForm" novalidate>
+            <button class="primary" type="button" id="scanBarcodeBtn">Scan barcode</button>
+            <div class="field field--spaced">
+              <label for="foodSearchInput">Or search a food by name</label>
+              <input
+                type="search"
+                id="foodSearchInput"
+                name="q"
+                placeholder="e.g. Greek yogurt"
+                autocomplete="off"
+              />
+            </div>
+            <div class="search-results" id="foodSearchResults" aria-live="polite"></div>
+          </form>
+
+          <h3 class="section-label">Today's food</h3>
+          <div id="foodTodayList"></div>
+        </section>
+
+        <!-- HISTORY VIEW -->
+        <section
+          class="view"
+          id="view-history"
+          role="tabpanel"
+          aria-labelledby="tab-history"
+          tabindex="0"
+        >
+          <h2 class="visually-hidden">History</h2>
+          <div id="historyList"></div>
+        </section>
+
+        <!-- PROGRESS VIEW -->
+        <section
+          class="view"
+          id="view-progress"
+          role="tabpanel"
+          aria-labelledby="tab-progress"
+          tabindex="0"
+        >
+          <h2 class="visually-hidden">Progress</h2>
+          <div class="picker-row">
+            <div class="field">
+              <label for="progressExercise">Exercise</label>
+              <select id="progressExercise"></select>
+            </div>
+          </div>
+          <div class="stat-cards">
+            <div class="stat-card">
+              <p class="label" id="label-best">Best set (est. 1RM)</p>
+              <p class="value pr" id="bestOneRM" aria-labelledby="label-best">—</p>
+            </div>
+            <div class="stat-card">
+              <p class="label" id="label-last">Last logged</p>
+              <p class="value" id="lastLogged" aria-labelledby="label-last">—</p>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <svg id="progressChart" viewBox="0 0 100 40" width="100%" height="180"></svg>
+          </div>
+        </section>
+      </main>
+
+      <nav class="tabbar" aria-label="Main">
+        <div role="tablist" aria-label="Sections">
+          <button
+            class="tab-btn active"
+            type="button"
+            id="tab-log"
+            role="tab"
+            aria-selected="true"
+            aria-controls="view-log"
+            data-view="log"
+          >
+            <span>Log</span><span class="dot"></span>
+          </button>
+          <button
+            class="tab-btn"
+            type="button"
+            id="tab-food"
+            role="tab"
+            aria-selected="false"
+            aria-controls="view-food"
+            data-view="food"
+            tabindex="-1"
+          >
+            <span>Nutrition</span><span class="dot"></span>
+          </button>
+          <button
+            class="tab-btn"
+            type="button"
+            id="tab-history"
+            role="tab"
+            aria-selected="false"
+            aria-controls="view-history"
+            data-view="history"
+            tabindex="-1"
+          >
+            <span>History</span><span class="dot"></span>
+          </button>
+          <button
+            class="tab-btn"
+            type="button"
+            id="tab-progress"
+            role="tab"
+            aria-selected="false"
+            aria-controls="view-progress"
+            data-view="progress"
+            tabindex="-1"
+          >
+            <span>Progress</span><span class="dot"></span>
+          </button>
         </div>
+      </nav>
+    </div>
 
-        <!-- Adaptive targets -->
-        <div class="targets-card">
-          <div class="targets-head">
-            <div class="calorie-readout" id="calorieProgressText">0 / 0 kcal</div>
-            <button class="text-btn" id="recalcTargetsBtn">Recalculate</button>
+    <!-- Barcode scanner overlay -->
+    <div
+      id="scannerModal"
+      class="modal modal--scanner"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Scan a barcode"
+      data-dialog-backdrop
+      hidden
+    >
+      <video id="scannerVideo" autoplay playsinline muted></video>
+      <div class="scanner-frame"></div>
+      <p class="scanner-hint">Point camera at the barcode</p>
+      <button class="scanner-close" type="button" id="closeScannerBtn" aria-label="Close scanner">
+        ✕
+      </button>
+    </div>
+
+    <!-- Profile / goal setup -->
+    <div
+      id="profileModal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="profileModalTitle"
+      data-dialog-backdrop
+      hidden
+    >
+      <form class="profile-card" id="profileForm" novalidate>
+        <h2 id="profileModalTitle">Your stats and goal</h2>
+        <p class="p-sub">
+          Used for an initial calorie estimate. It gets replaced by your own data once you've logged
+          enough days.
+        </p>
+
+        <div class="row2">
+          <div class="field">
+            <label for="profileSex">Sex</label>
+            <select id="profileSex" name="sex">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
           </div>
-          <div class="tdee-line" id="tdeeLine">Estimating your expenditure…</div>
-          <div class="bar-track"><div class="bar-fill" id="calorieBarFill" style="width:0%;"></div></div>
-          <div class="macro-row">
-            <div class="macro-cell">
-              <div class="m-label">Protein</div>
-              <div class="m-value" id="proteinTargetText">— / —</div>
-            </div>
-            <div class="macro-cell">
-              <div class="m-label">Carbs</div>
-              <div class="m-value" id="carbsTargetText">— / —</div>
-            </div>
-            <div class="macro-cell">
-              <div class="m-label">Fat</div>
-              <div class="m-value" id="fatTargetText">— / —</div>
-            </div>
-          </div>
-          <div style="text-align:right; margin-top:10px;">
-            <button class="text-btn" id="editProfileBtn">Edit goal / stats</button>
+          <div class="field">
+            <label for="profileAge">Age</label>
+            <input
+              type="number"
+              id="profileAge"
+              name="age"
+              inputmode="numeric"
+              min="13"
+              max="120"
+              step="1"
+              placeholder="30"
+              required
+            />
           </div>
         </div>
-
-      </div>
-
-      <div class="entry-panel">
-        <button class="primary" id="scanBarcodeBtn">Scan barcode</button>
-        <div class="field" style="margin-top:14px;">
-          <label for="foodSearchInput">Or search a food by name</label>
-          <input type="text" id="foodSearchInput" placeholder="e.g. Greek yogurt" autocomplete="off">
+        <div class="row2">
+          <div class="field">
+            <label for="profileHeight">Height (cm)</label>
+            <input
+              type="number"
+              id="profileHeight"
+              name="height"
+              inputmode="numeric"
+              min="100"
+              max="250"
+              step="1"
+              placeholder="178"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="profileWeight">Current weight (kg)</label>
+            <input
+              type="number"
+              id="profileWeight"
+              name="weight"
+              inputmode="decimal"
+              min="20"
+              max="400"
+              step="0.1"
+              placeholder="82"
+              required
+            />
+          </div>
         </div>
-        <div class="search-results" id="foodSearchResults"></div>
-      </div>
-
-      <div class="section-label">Today's food</div>
-      <div id="foodTodayList">
-        <div class="empty-state">No food logged yet today.</div>
-      </div>
-    </section>
-
-    <!-- HISTORY VIEW -->
-    <section class="view" id="view-history">
-      <div id="historyList">
-        <div class="empty-state">Your logged sets will show up here, grouped by day.</div>
-      </div>
-    </section>
-
-    <!-- PROGRESS VIEW -->
-    <section class="view" id="view-progress">
-      <div class="picker-row">
         <div class="field">
-          <label for="progressExercise">Exercise</label>
-          <select id="progressExercise"></select>
-        </div>
-      </div>
-      <div class="stat-cards">
-        <div class="stat-card">
-          <div class="label">Best set (est. 1RM)</div>
-          <div class="value pr" id="bestOneRM">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">Last logged</div>
-          <div class="value" id="lastLogged">—</div>
-        </div>
-      </div>
-      <div class="chart-wrap">
-        <svg id="progressChart" viewBox="0 0 100 40" width="100%" height="180" preserveAspectRatio="none"></svg>
-      </div>
-    </section>
-
-  </main>
-
-  <nav class="tabbar">
-    <button class="tab-btn active" data-view="log"><span>Log</span><span class="dot"></span></button>
-    <button class="tab-btn" data-view="food"><span>Nutrition</span><span class="dot"></span></button>
-    <button class="tab-btn" data-view="history"><span>History</span><span class="dot"></span></button>
-    <button class="tab-btn" data-view="progress"><span>Progress</span><span class="dot"></span></button>
-  </nav>
-
-  <!-- Barcode scanner overlay -->
-  <div id="scannerModal" class="scanner-modal" style="display:none;">
-    <video id="scannerVideo" autoplay playsinline muted></video>
-    <div class="scanner-frame"></div>
-    <div class="scanner-hint">Point camera at the barcode</div>
-    <button class="scanner-close" id="closeScannerBtn">✕</button>
-  </div>
-
-  <!-- Profile / goal setup modal -->
-  <div id="profileModal" class="scanner-modal" style="display:none;">
-    <div class="profile-card">
-      <h3>Your stats and goal</h3>
-      <p class="p-sub">Used for an initial calorie estimate. It gets replaced by your own data once you've logged enough days.</p>
-
-      <div class="row2">
-        <div class="field">
-          <label for="profileSex">Sex</label>
-          <select id="profileSex">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
+          <label for="profileActivity">Activity level</label>
+          <select id="profileActivity" name="activity">
+            <option value="sedentary">Sedentary (desk job, little exercise)</option>
+            <option value="light">Light (exercise 1–3x/week)</option>
+            <option value="moderate">Moderate (exercise 3–5x/week)</option>
+            <option value="active">Very active (exercise 6–7x/week)</option>
           </select>
         </div>
         <div class="field">
-          <label for="profileAge">Age</label>
-          <input type="number" id="profileAge" inputmode="numeric" placeholder="30">
+          <label for="profileGoal">Goal</label>
+          <select id="profileGoal" name="goal">
+            <option value="lose">Lose weight</option>
+            <option value="maintain">Maintain weight</option>
+            <option value="gain">Gain weight</option>
+          </select>
         </div>
-      </div>
-      <div class="row2">
+        <div class="field" id="profileRateField">
+          <label for="profileRate">Target rate (kg/week)</label>
+          <input
+            type="number"
+            id="profileRate"
+            name="rate"
+            inputmode="decimal"
+            min="0"
+            max="2"
+            step="0.1"
+            value="0.5"
+            placeholder="0.5"
+          />
+        </div>
+
+        <button class="primary" type="submit">Save and calculate</button>
+        <button class="secondary" type="button" id="cancelProfileBtn">Cancel</button>
+      </form>
+    </div>
+
+    <!-- Quantity confirmation after a scan or search selection -->
+    <div
+      id="addFoodModal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addFoodName"
+      data-dialog-backdrop
+      hidden
+    >
+      <form class="add-food-card" id="addFoodForm" novalidate>
+        <h2 id="addFoodName">Item</h2>
         <div class="field">
-          <label for="profileHeight">Height (cm)</label>
-          <input type="number" id="profileHeight" inputmode="numeric" placeholder="178">
+          <label for="addFoodGrams">Amount (g)</label>
+          <input
+            type="number"
+            id="addFoodGrams"
+            name="grams"
+            value="100"
+            inputmode="decimal"
+            min="1"
+            step="1"
+            required
+          />
         </div>
-        <div class="field">
-          <label for="profileWeight">Current weight (kg)</label>
-          <input type="number" id="profileWeight" inputmode="decimal" placeholder="82">
-        </div>
-      </div>
-      <div class="field">
-        <label for="profileActivity">Activity level</label>
-        <select id="profileActivity">
-          <option value="sedentary">Sedentary (desk job, little exercise)</option>
-          <option value="light">Light (exercise 1–3x/week)</option>
-          <option value="moderate">Moderate (exercise 3–5x/week)</option>
-          <option value="active">Very active (exercise 6–7x/week)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="profileGoal">Goal</label>
-        <select id="profileGoal">
-          <option value="lose">Lose weight</option>
-          <option value="maintain">Maintain weight</option>
-          <option value="gain">Gain weight</option>
-        </select>
-      </div>
-      <div class="field" id="profileRateField">
-        <label for="profileRate">Target rate (kg/week)</label>
-        <input type="number" id="profileRate" inputmode="decimal" step="0.1" value="0.5" placeholder="0.5">
-      </div>
-
-      <button class="primary" id="saveProfileBtn">Save and calculate</button>
-      <div style="height:8px;"></div>
-      <button class="secondary" id="cancelProfileBtn">Cancel</button>
+        <p class="num-display">
+          <span id="addFoodKcalValue">0</span><span class="num-sub">kcal</span>
+        </p>
+        <button class="primary" type="submit">Add to log</button>
+        <button class="secondary" type="button" id="cancelAddFoodBtn">Cancel</button>
+      </form>
     </div>
-  </div>
 
-  <!-- Confirm/quantity modal after scan or search select -->
-  <div id="addFoodModal" class="scanner-modal" style="display:none;">
-    <div class="add-food-card">
-      <h3 id="addFoodName">Item</h3>
-      <div class="field">
-        <label for="addFoodGrams">Amount (g)</label>
-        <input type="number" id="addFoodGrams" value="100" inputmode="decimal">
-      </div>
-      <div class="num-display" id="addFoodKcalPreview">0<span class="num-sub" style="font-size:14px; margin-left:6px;">kcal</span></div>
-      <div style="height:16px;"></div>
-      <button class="primary" id="confirmAddFoodBtn">Add to log</button>
-      <div style="height:8px;"></div>
-      <button class="secondary" id="cancelAddFoodBtn">Cancel</button>
-    </div>
-  </div>
-
-</div>
-
-<script>
-// =========================================================
-// Storage
-// =========================================================
-const SETS_KEY = 'ironlog.sets.v1';
-const FOOD_KEY = 'ironlog.food.v1';
-const WEIGHT_KEY = 'ironlog.weight.v1';
-const PROFILE_KEY = 'ironlog.profile.v1';
-const TDEE_KEY = 'ironlog.tdee.v1';
-
-function loadJSON(key){
-  try{ return JSON.parse(localStorage.getItem(key)) || []; }catch(e){ return []; }
-}
-function saveJSON(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
-function loadObj(key){
-  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; }
-}
-function saveObj(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
-
-let sets = loadJSON(SETS_KEY);
-let foodEntries = loadJSON(FOOD_KEY);
-let weightEntries = loadJSON(WEIGHT_KEY);
-
-// =========================================================
-// Helpers
-// =========================================================
-function todayISO(){ return new Date().toISOString().slice(0,10); }
-function fmtDate(iso){
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
-}
-function epley1RM(weight, reps){
-  if(reps <= 1) return weight;
-  return Math.round(weight * (1 + reps/30));
-}
-function uniqueExercises(){
-  return [...new Set(sets.map(s => s.exercise))].sort((a,b)=>a.localeCompare(b));
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// =========================================================
-// Workout rendering
-// =========================================================
-function renderExerciseOptions(){
-  const dl = document.getElementById('exerciseOptions');
-  dl.innerHTML = uniqueExercises().map(n => `<option value="${escapeHtml(n)}">`).join('');
-  const sel = document.getElementById('progressExercise');
-  const names = uniqueExercises();
-  const prevVal = sel.value;
-  sel.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
-  if(names.includes(prevVal)) sel.value = prevVal;
-}
-
-function renderTodayList(){
-  const list = document.getElementById('todayList');
-  const t = todayISO();
-  const todays = sets.filter(s => s.date === t).sort((a,b)=> b.ts - a.ts);
-  if(todays.length === 0){
-    list.innerHTML = '<div class="empty-state">No sets logged yet today. Add one above.</div>';
-    return;
-  }
-  list.innerHTML = todays.map(s => `
-    <div class="set-row" data-id="${s.id}">
-      <div class="ex-name">${escapeHtml(s.exercise)}</div>
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div class="ex-detail">${s.weight}<span class="unit">kg</span> × ${s.reps}<span class="unit">${s.setCount>1 ? ' × '+s.setCount+' sets':''}</span></div>
-        <button class="del-btn" onclick="deleteSet('${s.id}')">✕</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderHistory(){
-  const container = document.getElementById('historyList');
-  if(sets.length === 0){
-    container.innerHTML = '<div class="empty-state">Your logged sets will show up here, grouped by day.</div>';
-    return;
-  }
-  const byDate = {};
-  sets.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(s); });
-  const dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
-  container.innerHTML = dates.map(date => `
-    <div class="day-group">
-      <div class="day-header">${fmtDate(date)}</div>
-      ${byDate[date].sort((a,b)=>b.ts-a.ts).map(s => `
-        <div class="set-row" data-id="${s.id}">
-          <div class="ex-name">${escapeHtml(s.exercise)}</div>
-          <div style="display:flex; align-items:center; gap:14px;">
-            <div class="ex-detail">${s.weight}<span class="unit">kg</span> × ${s.reps}${s.setCount>1 ? ' × '+s.setCount+'<span class=\"unit\"> sets</span>':''}</div>
-            <button class="del-btn" onclick="deleteSet('${s.id}')">✕</button>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `).join('');
-}
-
-function renderProgress(){
-  const sel = document.getElementById('progressExercise');
-  const exercise = sel.value;
-  const bestEl = document.getElementById('bestOneRM');
-  const lastEl = document.getElementById('lastLogged');
-  const chart = document.getElementById('progressChart');
-
-  if(!exercise){
-    bestEl.textContent = '—';
-    lastEl.textContent = '—';
-    chart.innerHTML = '<foreignObject x="0" y="0" width="100" height="40"><div xmlns="http://www.w3.org/1999/xhtml" style="color:#8B8F98; font-family:Inter,sans-serif; font-size:4px; text-align:center; padding-top:16px;">Log a set to see progress here.</div></foreignObject>';
-    return;
-  }
-
-  const rows = sets.filter(s => s.exercise === exercise).sort((a,b)=>a.ts-b.ts);
-  const best = Math.max(...rows.map(r => epley1RM(r.weight, r.reps)));
-  bestEl.textContent = best + ' kg';
-  const last = rows[rows.length-1];
-  lastEl.textContent = last ? `${last.weight}×${last.reps}` : '—';
-
-  const points = rows.map(r => epley1RM(r.weight, r.reps));
-  if(points.length < 2){
-    chart.innerHTML = points.length === 1
-      ? '<foreignObject x="0" y="0" width="100" height="40"><div xmlns="http://www.w3.org/1999/xhtml" style="color:#8B8F98; font-family:Inter,sans-serif; font-size:4px; text-align:center; padding-top:16px;">Log one more set to see a trend line.</div></foreignObject>'
-      : '';
-    return;
-  }
-  const min = Math.min(...points), max = Math.max(...points);
-  const range = max - min || 1;
-  const stepX = 100 / (points.length - 1);
-  const coords = points.map((p,i) => {
-    const x = i * stepX;
-    const y = 38 - ((p - min) / range) * 34;
-    return [x,y];
-  });
-  const path = coords.map((c,i) => (i===0?'M':'L') + c[0].toFixed(2) + ',' + c[1].toFixed(2)).join(' ');
-  const dots = coords.map(c => `<circle cx="${c[0].toFixed(2)}" cy="${c[1].toFixed(2)}" r="1.4" fill="#E5484D"/>`).join('');
-  chart.innerHTML = `<path d="${path}" fill="none" stroke="#E5484D" stroke-width="0.8" vector-effect="non-scaling-stroke"/>${dots}`;
-}
-
-function addSet(){
-  const exercise = document.getElementById('exerciseInput').value.trim();
-  const weight = parseFloat(document.getElementById('weightInput').value);
-  const reps = parseInt(document.getElementById('repsInput').value, 10);
-  const setCount = parseInt(document.getElementById('setsInput').value, 10) || 1;
-
-  if(!exercise || isNaN(weight) || isNaN(reps)){
-    alert('Fill in exercise, weight, and reps.');
-    return;
-  }
-
-  sets.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    exercise, weight, reps, setCount,
-    date: todayISO(),
-    ts: Date.now()
-  });
-  saveJSON(SETS_KEY, sets);
-
-  document.getElementById('weightInput').value = '';
-  document.getElementById('repsInput').value = '';
-  document.getElementById('setsInput').value = '1';
-
-  renderAll();
-}
-function deleteSet(id){
-  sets = sets.filter(s => s.id !== id);
-  saveJSON(SETS_KEY, sets);
-  renderAll();
-}
-window.deleteSet = deleteSet;
-
-// =========================================================
-// Food / nutrition
-// =========================================================
-const OFF_PRODUCT_URL = code => `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`;
-const OFF_SEARCH_URL = q => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=8`;
-
-let currentFoodItem = null; // { name, kcal100, protein100, carbs100, fat100 }
-let scannerControls = null;
-let searchDebounceTimer = null;
-
-function mapOffProduct(p){
-  const n = p.nutriments || {};
-  return {
-    name: p.product_name || p.generic_name || 'Unknown item',
-    brand: p.brands || '',
-    kcal100: Number(n['energy-kcal_100g'] ?? n['energy-kcal'] ?? 0),
-    protein100: Number(n['proteins_100g'] ?? 0),
-    carbs100: Number(n['carbohydrates_100g'] ?? 0),
-    fat100: Number(n['fat_100g'] ?? 0)
-  };
-}
-
-function renderFoodToday(){
-  const list = document.getElementById('foodTodayList');
-  const t = todayISO();
-  const todays = foodEntries.filter(f => f.date === t).sort((a,b)=>b.ts-a.ts);
-
-  if(todays.length === 0){
-    list.innerHTML = '<div class="empty-state">No food logged yet today.</div>';
-    return;
-  }
-  list.innerHTML = todays.map(f => `
-    <div class="set-row" data-id="${f.id}">
-      <div>
-        <div class="ex-name">${escapeHtml(f.name)}</div>
-        <div class="ex-sub">${f.grams}g</div>
-      </div>
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div class="ex-detail">${Math.round(f.kcal)}<span class="unit"> kcal</span></div>
-        <button class="del-btn" onclick="deleteFood('${f.id}')">✕</button>
-      </div>
-    </div>
-  `).join('');
-}
-function deleteFood(id){
-  foodEntries = foodEntries.filter(f => f.id !== id);
-  saveJSON(FOOD_KEY, foodEntries);
-  renderNutritionDashboard();
-}
-window.deleteFood = deleteFood;
-
-function openAddFoodModal(item){
-  currentFoodItem = item;
-  document.getElementById('addFoodName').textContent = item.brand ? `${item.name} (${item.brand})` : item.name;
-  document.getElementById('addFoodGrams').value = 100;
-  updateAddFoodPreview();
-  document.getElementById('addFoodModal').style.display = 'flex';
-}
-function updateAddFoodPreview(){
-  const grams = parseFloat(document.getElementById('addFoodGrams').value) || 0;
-  const kcal = currentFoodItem ? (currentFoodItem.kcal100 / 100) * grams : 0;
-  document.getElementById('addFoodKcalPreview').innerHTML = `${Math.round(kcal)}<span class="num-sub" style="font-size:14px; margin-left:6px;">kcal</span>`;
-}
-function closeAddFoodModal(){
-  document.getElementById('addFoodModal').style.display = 'none';
-  currentFoodItem = null;
-}
-function confirmAddFood(){
-  if(!currentFoodItem) return;
-  const grams = parseFloat(document.getElementById('addFoodGrams').value) || 0;
-  const factor = grams / 100;
-  foodEntries.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    name: currentFoodItem.name,
-    grams,
-    kcal: currentFoodItem.kcal100 * factor,
-    protein: currentFoodItem.protein100 * factor,
-    carbs: currentFoodItem.carbs100 * factor,
-    fat: currentFoodItem.fat100 * factor,
-    date: todayISO(),
-    ts: Date.now()
-  });
-  saveJSON(FOOD_KEY, foodEntries);
-  closeAddFoodModal();
-  document.getElementById('foodSearchInput').value = '';
-  document.getElementById('foodSearchResults').innerHTML = '';
-  renderNutritionDashboard();
-}
-
-async function lookupBarcode(code){
-  try{
-    const res = await fetch(OFF_PRODUCT_URL(code));
-    const data = await res.json();
-    if(data.status === 1 && data.product){
-      openAddFoodModal(mapOffProduct(data.product));
-    } else {
-      alert('No product found for that barcode. Try searching by name instead.');
-    }
-  }catch(e){
-    alert('Could not reach the food database. Check your connection and try again.');
-  }
-}
-
-async function runFoodSearch(query){
-  const resultsEl = document.getElementById('foodSearchResults');
-  if(query.length < 3){ resultsEl.innerHTML = ''; return; }
-  try{
-    const res = await fetch(OFF_SEARCH_URL(query));
-    const data = await res.json();
-    const products = (data.products || []).filter(p => p.product_name).slice(0, 8);
-    if(products.length === 0){
-      resultsEl.innerHTML = '<div class="empty-state" style="padding:16px;">No matches. Try a different search term.</div>';
-      return;
-    }
-    resultsEl.innerHTML = products.map((p, i) => `
-      <div class="search-result-row" data-idx="${i}">
-        <div class="sr-name">${escapeHtml(p.product_name)}</div>
-        <div class="sr-sub">${escapeHtml(p.brands || '')} ${p.nutriments && p.nutriments['energy-kcal_100g'] ? '· ' + Math.round(p.nutriments['energy-kcal_100g']) + ' kcal/100g' : ''}</div>
-      </div>
-    `).join('');
-    resultsEl.querySelectorAll('.search-result-row').forEach(row => {
-      row.addEventListener('click', () => {
-        const idx = parseInt(row.dataset.idx, 10);
-        openAddFoodModal(mapOffProduct(products[idx]));
-      });
-    });
-  }catch(e){
-    resultsEl.innerHTML = '<div class="empty-state" style="padding:16px;">Search failed. Check your connection.</div>';
-  }
-}
-
-async function startScanner(){
-  const modal = document.getElementById('scannerModal');
-  const video = document.getElementById('scannerVideo');
-  modal.style.display = 'flex';
-  try{
-    const { BrowserMultiFormatReader } = await import('https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/+esm');
-    const reader = new BrowserMultiFormatReader();
-    scannerControls = await reader.decodeFromConstraints(
-      { video: { facingMode: 'environment' } },
-      video,
-      (result, err) => {
-        if(result){
-          const code = result.getText();
-          stopScanner();
-          lookupBarcode(code);
-        }
-      }
-    );
-  }catch(e){
-    stopScanner();
-    alert('Could not access the camera. You can search by name instead.');
-  }
-}
-function stopScanner(){
-  if(scannerControls){
-    try{ scannerControls.stop(); }catch(e){}
-    scannerControls = null;
-  }
-  document.getElementById('scannerModal').style.display = 'none';
-}
-
-// =========================================================
-// Weight tracking + adaptive TDEE coaching
-// (Approximates MacroFactor's approach: smooth a noisy daily
-// weight trend, then back-calculate real expenditure from
-// logged intake vs. that trend, rather than a fixed formula.)
-// =========================================================
-const KCAL_PER_KG = 7700; // approx. energy density of 1kg of stored body mass
-const TREND_ALPHA = 0.1; // smoothing factor for the weight trend (lower = smoother/slower)
-
-function loadProfile(){ return loadObj(PROFILE_KEY); }
-function saveProfile(p){ saveObj(PROFILE_KEY, p); }
-
-function upsertWeightEntry(weightKg){
-  const t = todayISO();
-  const idx = weightEntries.findIndex(w => w.date === t);
-  if(idx >= 0){ weightEntries[idx].weight = weightKg; }
-  else { weightEntries.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), weight: weightKg, date: t, ts: Date.now() }); }
-  saveJSON(WEIGHT_KEY, weightEntries);
-}
-
-// Exponential smoothing over chronological weigh-ins to isolate
-// the real trend from day-to-day noise (water, sodium, gut contents, etc).
-function computeTrendSeries(){
-  const sorted = [...weightEntries].sort((a,b) => a.date.localeCompare(b.date));
-  let trend = null;
-  return sorted.map((w,i) => {
-    trend = (i === 0) ? w.weight : TREND_ALPHA * w.weight + (1 - TREND_ALPHA) * trend;
-    return { date: w.date, weight: w.weight, trendWeight: trend };
-  });
-}
-
-function getDailyFoodTotals(){
-  const totals = {};
-  foodEntries.forEach(f => { totals[f.date] = (totals[f.date] || 0) + f.kcal; });
-  return totals;
-}
-
-function getTodayFoodTotals(){
-  const t = todayISO();
-  return foodEntries.filter(f => f.date === t).reduce((acc, f) => {
-    acc.kcal += f.kcal; acc.protein += f.protein; acc.carbs += f.carbs; acc.fat += f.fat;
-    return acc;
-  }, { kcal:0, protein:0, carbs:0, fat:0 });
-}
-
-// Mifflin-St Jeor (metric), used only until enough real data exists.
-function computeInitialTDEE(profile, weightKg){
-  const bmr = profile.sex === 'male'
-    ? 10*weightKg + 6.25*profile.heightCm - 5*profile.age + 5
-    : 10*weightKg + 6.25*profile.heightCm - 5*profile.age - 161;
-  const mult = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725 }[profile.activity] || 1.375;
-  return Math.round(bmr * mult);
-}
-
-// Back-calculates TDEE from logged intake vs. the trend-weight change
-// over the same window: TDEE = avg. intake - daily energy balance implied by weight change.
-function computeAdaptiveTDEE(trendSeries){
-  const trendMap = {};
-  trendSeries.forEach(t => { trendMap[t.date] = t.trendWeight; });
-  const foodTotals = getDailyFoodTotals();
-  const eligibleDates = Object.keys(trendMap).filter(d => foodTotals[d] !== undefined).sort();
-  if(eligibleDates.length < 10) return null; // need ~10+ overlapping days before trusting this
-
-  const windowDates = eligibleDates.slice(-28); // up to a 4-week rolling window
-  const first = windowDates[0], last = windowDates[windowDates.length - 1];
-  const daysSpan = (new Date(last) - new Date(first)) / 86400000;
-  if(daysSpan < 6) return null;
-
-  const weightChangeKg = trendMap[last] - trendMap[first];
-  const avgIntake = windowDates.reduce((sum,d) => sum + foodTotals[d], 0) / windowDates.length;
-  const dailyEnergyBalance = (weightChangeKg * KCAL_PER_KG) / daysSpan;
-  return Math.round(avgIntake - dailyEnergyBalance);
-}
-
-function computeTargets(tdee, profile, currentWeightKg){
-  let targetCalories = tdee;
-  if(profile.goal === 'lose') targetCalories = tdee - (profile.rateKgWk * KCAL_PER_KG) / 7;
-  else if(profile.goal === 'gain') targetCalories = tdee + (profile.rateKgWk * KCAL_PER_KG) / 7;
-  targetCalories = Math.max(Math.round(targetCalories), 1200); // safety floor
-
-  const proteinPerKg = profile.goal === 'gain' ? 1.8 : 2.2; // g protein per kg bodyweight
-  const proteinG = Math.round((currentWeightKg || profile.weightKg) * proteinPerKg);
-  const fatG = Math.round((targetCalories * 0.25) / 9);
-  const carbsG = Math.max(Math.round((targetCalories - proteinG*4 - fatG*9) / 4), 0);
-
-  return { targetCalories, proteinG, fatG, carbsG };
-}
-
-// Refreshes the stored target snapshot when: none exists yet, it's been
-// 7+ days since the last update (MacroFactor-style weekly check-in), the
-// estimate can finally switch from formula-based to adaptive, or refresh
-// is forced (e.g. user hits "Recalculate" or edits their profile).
-function maybeRefreshTargets(forced){
-  const profile = loadProfile();
-  if(!profile) return null;
-
-  const trendSeries = computeTrendSeries();
-  const currentWeight = trendSeries.length ? trendSeries[trendSeries.length-1].trendWeight : profile.weightKg;
-  const adaptive = computeAdaptiveTDEE(trendSeries);
-
-  let snapshot = loadObj(TDEE_KEY);
-  const now = Date.now();
-  const daysSinceUpdate = snapshot ? (now - snapshot.computedAt) / 86400000 : Infinity;
-  const shouldRecompute = forced || !snapshot || daysSinceUpdate >= 7 || (snapshot.source === 'estimate' && adaptive !== null);
-
-  if(shouldRecompute){
-    const tdeeValue = adaptive !== null ? adaptive : computeInitialTDEE(profile, currentWeight);
-    const targets = computeTargets(tdeeValue, profile, currentWeight);
-    snapshot = { tdee: tdeeValue, source: adaptive !== null ? 'adaptive' : 'estimate', computedAt: now, ...targets };
-    saveObj(TDEE_KEY, snapshot);
-  }
-  return snapshot;
-}
-
-function renderWeightChart(trendSeries){
-  const svg = document.getElementById('weightChart');
-  if(trendSeries.length === 0){
-    svg.innerHTML = '';
-    return;
-  }
-  if(trendSeries.length === 1){
-    svg.innerHTML = '<foreignObject x="0" y="0" width="100" height="40"><div xmlns="http://www.w3.org/1999/xhtml" style="color:#8B8F98; font-family:Inter,sans-serif; font-size:4px; text-align:center; padding-top:14px;">Log tomorrow to start a trend line.</div></foreignObject>';
-    return;
-  }
-  const values = trendSeries.map(t => t.trendWeight);
-  const raw = trendSeries.map(t => t.weight);
-  const allVals = values.concat(raw);
-  const min = Math.min(...allVals), max = Math.max(...allVals);
-  const range = (max - min) || 1;
-  const stepX = 100 / (trendSeries.length - 1);
-  const toXY = (val,i) => [i*stepX, 38 - ((val-min)/range)*34];
-  const trendCoords = values.map((v,i) => toXY(v,i));
-  const rawCoords = raw.map((v,i) => toXY(v,i));
-  const path = trendCoords.map((c,i) => (i===0?'M':'L') + c[0].toFixed(2) + ',' + c[1].toFixed(2)).join(' ');
-  const rawDots = rawCoords.map(c => `<circle cx="${c[0].toFixed(2)}" cy="${c[1].toFixed(2)}" r="1" fill="#8B8F98" opacity="0.55"/>`).join('');
-  const trendDots = trendCoords.map(c => `<circle cx="${c[0].toFixed(2)}" cy="${c[1].toFixed(2)}" r="1.2" fill="#E5484D"/>`).join('');
-  svg.innerHTML = `${rawDots}<path d="${path}" fill="none" stroke="#E5484D" stroke-width="0.8" vector-effect="non-scaling-stroke"/>${trendDots}`;
-}
-
-function renderNutritionDashboard(){
-  const profile = loadProfile();
-  const banner = document.getElementById('profileSetupBanner');
-  const dashboard = document.getElementById('nutritionDashboard');
-
-  if(!profile){
-    banner.style.display = 'block';
-    dashboard.style.display = 'none';
-    return;
-  }
-  banner.style.display = 'none';
-  dashboard.style.display = 'block';
-
-  const trendSeries = computeTrendSeries();
-  const snapshot = maybeRefreshTargets(false);
-
-  // Weight card
-  const todayEntry = weightEntries.find(w => w.date === todayISO());
-  document.getElementById('weightInputField').value = todayEntry ? todayEntry.weight : '';
-  const last = trendSeries[trendSeries.length - 1];
-  const trendValEl = document.getElementById('trendWeightValue');
-  const trendSubEl = document.getElementById('trendWeightSub');
-  if(last){
-    trendValEl.childNodes[0].textContent = last.trendWeight.toFixed(1) + ' kg ';
-    const weekAgoCutoff = new Date(new Date(last.date).getTime() - 7*86400000);
-    const weekAgoEntry = trendSeries.find(t => new Date(t.date) >= weekAgoCutoff) || trendSeries[0];
-    const weeklyChange = last.trendWeight - weekAgoEntry.trendWeight;
-    const sign = weeklyChange > 0 ? '+' : '';
-    trendSubEl.textContent = trendSeries.length > 1
-      ? `Trend weight · ${sign}${weeklyChange.toFixed(1)} kg / wk`
-      : 'Trend weight · log again to see a rate';
-  } else {
-    trendValEl.childNodes[0].textContent = '— ';
-    trendSubEl.textContent = 'Log a weigh-in to start a trend';
-  }
-  renderWeightChart(trendSeries);
-
-  // Targets card
-  const totals = getTodayFoodTotals();
-  if(snapshot){
-    document.getElementById('calorieProgressText').textContent = `${Math.round(totals.kcal)} / ${snapshot.targetCalories} kcal`;
-    document.getElementById('tdeeLine').textContent = snapshot.source === 'adaptive'
-      ? `Adaptive TDEE ≈ ${snapshot.tdee} kcal, from your own logs`
-      : `Initial estimate ≈ ${snapshot.tdee} kcal — refines once you've logged ~10+ days`;
-    const pct = Math.min(100, (totals.kcal / snapshot.targetCalories) * 100);
-    document.getElementById('calorieBarFill').style.width = pct + '%';
-    document.getElementById('proteinTargetText').textContent = `${Math.round(totals.protein)} / ${snapshot.proteinG} g`;
-    document.getElementById('carbsTargetText').textContent = `${Math.round(totals.carbs)} / ${snapshot.carbsG} g`;
-    document.getElementById('fatTargetText').textContent = `${Math.round(totals.fat)} / ${snapshot.fatG} g`;
-  }
-
-  renderFoodToday();
-}
-
-function openProfileModal(){
-  const profile = loadProfile();
-  if(profile){
-    document.getElementById('profileSex').value = profile.sex;
-    document.getElementById('profileAge').value = profile.age;
-    document.getElementById('profileHeight').value = profile.heightCm;
-    document.getElementById('profileWeight').value = profile.weightKg;
-    document.getElementById('profileActivity').value = profile.activity;
-    document.getElementById('profileGoal').value = profile.goal;
-    document.getElementById('profileRate').value = profile.rateKgWk;
-  }
-  toggleRateField();
-  document.getElementById('profileModal').style.display = 'flex';
-}
-function closeProfileModal(){ document.getElementById('profileModal').style.display = 'none'; }
-function toggleRateField(){
-  const goal = document.getElementById('profileGoal').value;
-  document.getElementById('profileRateField').style.display = goal === 'maintain' ? 'none' : 'block';
-}
-function saveProfileForm(){
-  const sex = document.getElementById('profileSex').value;
-  const age = parseInt(document.getElementById('profileAge').value, 10);
-  const heightCm = parseFloat(document.getElementById('profileHeight').value);
-  const weightKg = parseFloat(document.getElementById('profileWeight').value);
-  const activity = document.getElementById('profileActivity').value;
-  const goal = document.getElementById('profileGoal').value;
-  const rateKgWk = parseFloat(document.getElementById('profileRate').value) || 0;
-
-  if(!age || !heightCm || !weightKg){
-    alert('Fill in age, height, and weight.');
-    return;
-  }
-  saveProfile({ sex, age, heightCm, weightKg, activity, goal, rateKgWk });
-  if(!weightEntries.find(w => w.date === todayISO())){
-    upsertWeightEntry(weightKg); // seed today's weigh-in from the form if not already logged
-  }
-  maybeRefreshTargets(true);
-  closeProfileModal();
-  renderNutritionDashboard();
-}
-
-// =========================================================
-// Tab navigation
-// =========================================================
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('view-' + btn.dataset.view).classList.add('active');
-    if(btn.dataset.view === 'progress') renderProgress();
-    if(btn.dataset.view === 'food') renderNutritionDashboard();
-  });
-});
-document.getElementById('progressExercise').addEventListener('change', renderProgress);
-document.getElementById('addSetBtn').addEventListener('click', addSet);
-
-document.getElementById('scanBarcodeBtn').addEventListener('click', startScanner);
-document.getElementById('closeScannerBtn').addEventListener('click', stopScanner);
-document.getElementById('cancelAddFoodBtn').addEventListener('click', closeAddFoodModal);
-document.getElementById('confirmAddFoodBtn').addEventListener('click', confirmAddFood);
-document.getElementById('addFoodGrams').addEventListener('input', updateAddFoodPreview);
-document.getElementById('foodSearchInput').addEventListener('input', (e) => {
-  clearTimeout(searchDebounceTimer);
-  const q = e.target.value.trim();
-  searchDebounceTimer = setTimeout(() => runFoodSearch(q), 400);
-});
-
-document.getElementById('logWeightBtn').addEventListener('click', () => {
-  const val = parseFloat(document.getElementById('weightInputField').value);
-  if(isNaN(val) || val <= 0){ alert('Enter a valid weight.'); return; }
-  upsertWeightEntry(val);
-  renderNutritionDashboard();
-});
-document.getElementById('recalcTargetsBtn').addEventListener('click', () => {
-  maybeRefreshTargets(true);
-  renderNutritionDashboard();
-});
-document.getElementById('openProfileBtn').addEventListener('click', openProfileModal);
-document.getElementById('editProfileBtn').addEventListener('click', openProfileModal);
-document.getElementById('cancelProfileBtn').addEventListener('click', closeProfileModal);
-document.getElementById('saveProfileBtn').addEventListener('click', saveProfileForm);
-document.getElementById('profileGoal').addEventListener('change', toggleRateField);
-
-// =========================================================
-// Init
-// =========================================================
-function renderAll(){
-  renderExerciseOptions();
-  renderTodayList();
-  renderHistory();
-  renderProgress();
-  renderNutritionDashboard();
-}
-
-document.getElementById('todayDate').textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
-renderAll();
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
-  });
-}
-</script>
-</body>
+    <script type="module" src="js/main.js"></script>
+  </body>
 </html>

@@ -1,0 +1,808 @@
+/*
+ * Iron Log stylesheet.
+ *
+ * Organised as: custom properties, base/reset, utilities, shared components,
+ * then per-view sections. Every colour comes from a custom property so the
+ * palette can be changed in one place, and nothing that belongs in CSS is left
+ * as a style attribute in the markup.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Design tokens                                                              */
+/* -------------------------------------------------------------------------- */
+
+:root {
+  --bg: #16181c;
+  --panel: #202329;
+  --panel-alt: #282c33;
+  --line: #33373f;
+  --text: #edebe6;
+  --muted: #8b8f98;
+  --accent: #e5484d;
+  --accent-active: #c93d42;
+  --pr: #f2b705;
+  --danger-bg: #3a1f21;
+
+  --font-display: 'Oswald', 'Helvetica Neue', arial, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+
+  --app-max-width: 520px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Base                                                                       */
+/* -------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  overscroll-behavior-y: none;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+body.has-dialog {
+  overflow: hidden;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/* A visible, consistent focus ring. The default outline is suppressed on
+   inputs below, so this is what keyboard users rely on throughout. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Utilities                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/* Available to screen readers, removed from the visual layout. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.noscript {
+  margin: 0;
+  padding: 16px;
+  background: var(--danger-bg);
+  color: var(--text);
+  text-align: center;
+  font-size: 14px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* App shell                                                                  */
+/* -------------------------------------------------------------------------- */
+
+.app {
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header.top {
+  padding: 20px 20px 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+header.top h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+
+header.top h1 span {
+  color: var(--accent);
+}
+
+header.top .today {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+main {
+  flex: 1;
+  padding: 16px 16px 96px;
+  overflow-y: auto;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Toasts                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.toast-host {
+  padding: 10px 16px 0;
+}
+
+.toast {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+}
+
+.toast--error {
+  background: var(--danger-bg);
+  border-color: var(--accent);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Forms and buttons                                                          */
+/* -------------------------------------------------------------------------- */
+
+.entry-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field--spaced {
+  margin-top: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+
+  /* 16px avoids iOS Safari zooming the page on focus. */
+  font-size: 16px;
+  font-family: var(--font-body);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+button.primary {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+button.primary:active {
+  background: var(--accent-active);
+}
+
+button.secondary {
+  width: 100%;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Logged rows (workouts and food)                                            */
+/* -------------------------------------------------------------------------- */
+
+.today-list {
+  margin-top: 4px;
+}
+
+.set-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.set-row:last-child {
+  border-bottom: none;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.set-row .ex-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.set-row .ex-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.set-row .ex-detail {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text);
+}
+
+.set-row .ex-detail .unit {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--font-body);
+}
+
+.del-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+
+  /* Keeps the tap target at the 44px minimum without enlarging the glyph. */
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 20px 0 10px;
+}
+
+.empty-state {
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 20px;
+  line-height: 1.6;
+}
+
+/* -------------------------------------------------------------------------- */
+/* History view                                                               */
+/* -------------------------------------------------------------------------- */
+
+.day-group {
+  margin-bottom: 20px;
+}
+
+.day-header {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Progress view                                                              */
+/* -------------------------------------------------------------------------- */
+
+.picker-row {
+  margin-bottom: 16px;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.stat-card .label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-card .value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.stat-card .value.pr {
+  color: var(--pr);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Charts                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.chart-wrap {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px 12px;
+}
+
+.chart-wrap--flush {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.chart-placeholder {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 32px 12px;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-dot {
+  fill: var(--accent);
+}
+
+.chart-dot-raw {
+  fill: var(--muted);
+  opacity: 0.55;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Nutrition dashboard                                                        */
+/* -------------------------------------------------------------------------- */
+
+.setup-banner {
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.setup-banner p {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.weight-card,
+.targets-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.weight-card-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.weight-quick-log {
+  display: flex;
+  gap: 8px;
+}
+
+.weight-quick-log input {
+  width: 90px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 16px;
+  font-family: var(--font-body);
+}
+
+.weight-quick-log button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.trend-readout .trend-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.trend-readout .sub {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.targets-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+  gap: 12px;
+}
+
+.targets-foot {
+  text-align: right;
+  margin-top: 10px;
+}
+
+.calorie-readout {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.tdee-line {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bar-track {
+  height: 8px;
+  background: var(--panel-alt);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 10px 0 4px;
+
+  /* Set from script as targets change. */
+  --bar-width: 0%;
+}
+
+.bar-fill {
+  width: var(--bar-width);
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.macro-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.macro-cell {
+  background: var(--panel-alt);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+}
+
+.macro-cell .m-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.macro-cell .m-value {
+  font-family: var(--font-display);
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Food search                                                                */
+/* -------------------------------------------------------------------------- */
+
+.search-results {
+  margin-top: 10px;
+}
+
+.search-result-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--text);
+}
+
+.search-result-row .sr-name {
+  display: block;
+  font-weight: 500;
+}
+
+.search-result-row .sr-sub {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dialogs                                                                    */
+/* -------------------------------------------------------------------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgb(10 11 13 / 96%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal--scanner video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanner-frame {
+  position: relative;
+  width: 70%;
+  aspect-ratio: 1.6 / 1;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 999px rgb(10 11 13 / 50%);
+}
+
+.scanner-hint {
+  position: absolute;
+  bottom: 14%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.scanner-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 16px);
+  right: 20px;
+  background: rgb(32 35 41 / 90%);
+  border: 1px solid var(--line);
+  color: var(--text);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.add-food-card,
+.profile-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  width: 88%;
+  max-width: 380px;
+  max-height: 82vh;
+  overflow-y: auto;
+}
+
+.add-food-card h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.profile-card h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.profile-card .p-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.num-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  margin-bottom: 16px;
+}
+
+.num-display .num-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tab bar                                                                    */
+/* -------------------------------------------------------------------------- */
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+  background: rgb(22 24 28 / 92%);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabbar [role='tablist'] {
+  display: flex;
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 12px 0 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.tab-btn .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.tab-btn.active {
+  color: var(--text);
+}
+
+.tab-btn.active .dot {
+  background: var(--accent);
+}
