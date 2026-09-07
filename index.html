@@ -209,6 +209,123 @@
     line-height:1.6;
   }
 
+  /* ---- Nutrition dashboard ---- */
+  .setup-banner{
+    background:var(--panel);
+    border:1px dashed var(--line);
+    border-radius:10px;
+    padding:20px;
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .setup-banner p{color:var(--muted); font-size:13px; margin:0 0 14px;}
+
+  .weight-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .weight-card-top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .weight-quick-log{
+    display:flex;
+    gap:8px;
+  }
+  .weight-quick-log input{
+    width:90px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:15px;
+  }
+  .weight-quick-log button{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:0 16px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .trend-readout{
+    font-family:'Oswald',sans-serif;
+    font-size:26px;
+    font-weight:600;
+  }
+  .trend-readout .sub{
+    display:block;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--muted);
+    font-weight:400;
+    margin-top:2px;
+  }
+
+  .targets-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .targets-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:4px;
+  }
+  .tdee-line{font-size:12px; color:var(--muted);}
+  .text-btn{
+    background:none;
+    border:none;
+    color:var(--accent);
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    padding:0;
+  }
+  .bar-track{
+    height:8px;
+    background:var(--panel-alt);
+    border-radius:4px;
+    overflow:hidden;
+    margin:10px 0 4px;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--accent);
+    border-radius:4px;
+    transition:width 0.3s ease;
+  }
+  .calorie-readout{
+    font-family:'Oswald',sans-serif;
+    font-size:22px;
+    font-weight:600;
+  }
+  .macro-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+    margin-top:14px;
+  }
+  .macro-cell{
+    background:var(--panel-alt);
+    border-radius:8px;
+    padding:10px;
+    text-align:center;
+  }
+  .macro-cell .m-label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;}
+  .macro-cell .m-value{font-family:'Oswald',sans-serif; font-size:15px; margin-top:4px;}
+
   /* ---- Food search results ---- */
   .search-results{margin-top:10px;}
   .search-result-row{
@@ -279,6 +396,28 @@
     font-size:18px;
     margin:0 0 16px;
   }
+  .profile-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:22px;
+    width:88%;
+    max-width:380px;
+    max-height:82vh;
+    overflow-y:auto;
+  }
+  .profile-card h3{
+    font-family:'Oswald',sans-serif;
+    font-weight:500;
+    font-size:18px;
+    margin:0 0 4px;
+  }
+  .profile-card .p-sub{
+    font-size:12px;
+    color:var(--muted);
+    margin:0 0 16px;
+  }
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 
   /* ---- Tab bar ---- */
   nav.tabbar{
@@ -355,17 +494,60 @@
       </div>
     </section>
 
-    <!-- FOOD VIEW (nutrition) -->
+    <!-- FOOD / NUTRITION VIEW -->
     <section class="view" id="view-food">
-      <div class="stat-cards">
-        <div class="stat-card">
-          <div class="label">Today's calories</div>
-          <div class="value" id="foodTotalKcal">0</div>
+
+      <!-- Shown until a profile is set up -->
+      <div class="setup-banner" id="profileSetupBanner">
+        <p>Set up your stats once and Iron Log will estimate your calorie needs, then refine them automatically as you log weight and food.</p>
+        <button class="primary" id="openProfileBtn" style="margin-top:0;">Set up my targets</button>
+      </div>
+
+      <div id="nutritionDashboard" style="display:none;">
+
+        <!-- Weight trend -->
+        <div class="weight-card">
+          <div class="weight-card-top">
+            <div>
+              <div class="trend-readout" id="trendWeightValue">—
+                <span class="sub" id="trendWeightSub">Log a weigh-in to start a trend</span>
+              </div>
+            </div>
+            <div class="weight-quick-log">
+              <input type="number" id="weightInputField" inputmode="decimal" placeholder="kg">
+              <button id="logWeightBtn">Log</button>
+            </div>
+          </div>
+          <svg id="weightChart" viewBox="0 0 100 40" width="100%" height="90" preserveAspectRatio="none"></svg>
         </div>
-        <div class="stat-card">
-          <div class="label">Protein · Carbs · Fat</div>
-          <div class="value" id="foodMacros" style="font-size:15px;">— · — · —</div>
+
+        <!-- Adaptive targets -->
+        <div class="targets-card">
+          <div class="targets-head">
+            <div class="calorie-readout" id="calorieProgressText">0 / 0 kcal</div>
+            <button class="text-btn" id="recalcTargetsBtn">Recalculate</button>
+          </div>
+          <div class="tdee-line" id="tdeeLine">Estimating your expenditure…</div>
+          <div class="bar-track"><div class="bar-fill" id="calorieBarFill" style="width:0%;"></div></div>
+          <div class="macro-row">
+            <div class="macro-cell">
+              <div class="m-label">Protein</div>
+              <div class="m-value" id="proteinTargetText">— / —</div>
+            </div>
+            <div class="macro-cell">
+              <div class="m-label">Carbs</div>
+              <div class="m-value" id="carbsTargetText">— / —</div>
+            </div>
+            <div class="macro-cell">
+              <div class="m-label">Fat</div>
+              <div class="m-value" id="fatTargetText">— / —</div>
+            </div>
+          </div>
+          <div style="text-align:right; margin-top:10px;">
+            <button class="text-btn" id="editProfileBtn">Edit goal / stats</button>
+          </div>
         </div>
+
       </div>
 
       <div class="entry-panel">
@@ -417,7 +599,7 @@
 
   <nav class="tabbar">
     <button class="tab-btn active" data-view="log"><span>Log</span><span class="dot"></span></button>
-    <button class="tab-btn" data-view="food"><span>Food</span><span class="dot"></span></button>
+    <button class="tab-btn" data-view="food"><span>Nutrition</span><span class="dot"></span></button>
     <button class="tab-btn" data-view="history"><span>History</span><span class="dot"></span></button>
     <button class="tab-btn" data-view="progress"><span>Progress</span><span class="dot"></span></button>
   </nav>
@@ -428,6 +610,63 @@
     <div class="scanner-frame"></div>
     <div class="scanner-hint">Point camera at the barcode</div>
     <button class="scanner-close" id="closeScannerBtn">✕</button>
+  </div>
+
+  <!-- Profile / goal setup modal -->
+  <div id="profileModal" class="scanner-modal" style="display:none;">
+    <div class="profile-card">
+      <h3>Your stats and goal</h3>
+      <p class="p-sub">Used for an initial calorie estimate. It gets replaced by your own data once you've logged enough days.</p>
+
+      <div class="row2">
+        <div class="field">
+          <label for="profileSex">Sex</label>
+          <select id="profileSex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="profileAge">Age</label>
+          <input type="number" id="profileAge" inputmode="numeric" placeholder="30">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="profileHeight">Height (in)</label>
+          <input type="number" id="profileHeight" inputmode="numeric" placeholder="70">
+        </div>
+        <div class="field">
+          <label for="profileWeight">Current weight (kg)</label>
+          <input type="number" id="profileWeight" inputmode="decimal" placeholder="180">
+        </div>
+      </div>
+      <div class="field">
+        <label for="profileActivity">Activity level</label>
+        <select id="profileActivity">
+          <option value="sedentary">Sedentary (desk job, little exercise)</option>
+          <option value="light">Light (exercise 1–3x/week)</option>
+          <option value="moderate">Moderate (exercise 3–5x/week)</option>
+          <option value="active">Very active (exercise 6–7x/week)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="profileGoal">Goal</label>
+        <select id="profileGoal">
+          <option value="lose">Lose weight</option>
+          <option value="maintain">Maintain weight</option>
+          <option value="gain">Gain weight</option>
+        </select>
+      </div>
+      <div class="field" id="profileRateField">
+        <label for="profileRate">Target rate (kg/week)</label>
+        <input type="number" id="profileRate" inputmode="decimal" step="0.1" value="1" placeholder="1">
+      </div>
+
+      <button class="primary" id="saveProfileBtn">Save and calculate</button>
+      <div style="height:8px;"></div>
+      <button class="secondary" id="cancelProfileBtn">Cancel</button>
+    </div>
   </div>
 
   <!-- Confirm/quantity modal after scan or search select -->
@@ -454,14 +693,22 @@
 // =========================================================
 const SETS_KEY = 'ironlog.sets.v1';
 const FOOD_KEY = 'ironlog.food.v1';
+const WEIGHT_KEY = 'ironlog.weight.v1';
+const PROFILE_KEY = 'ironlog.profile.v1';
+const TDEE_KEY = 'ironlog.tdee.v1';
 
 function loadJSON(key){
   try{ return JSON.parse(localStorage.getItem(key)) || []; }catch(e){ return []; }
 }
 function saveJSON(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
+function loadObj(key){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; }
+}
+function saveObj(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
 
 let sets = loadJSON(SETS_KEY);
 let foodEntries = loadJSON(FOOD_KEY);
+let weightEntries = loadJSON(WEIGHT_KEY);
 
 // =========================================================
 // Helpers
@@ -638,13 +885,6 @@ function renderFoodToday(){
   const t = todayISO();
   const todays = foodEntries.filter(f => f.date === t).sort((a,b)=>b.ts-a.ts);
 
-  let totalKcal = 0, totalP = 0, totalC = 0, totalF = 0;
-  todays.forEach(f => { totalKcal += f.kcal; totalP += f.protein; totalC += f.carbs; totalF += f.fat; });
-
-  document.getElementById('foodTotalKcal').textContent = Math.round(totalKcal);
-  document.getElementById('foodMacros').textContent =
-    `${Math.round(totalP)}g · ${Math.round(totalC)}g · ${Math.round(totalF)}g`;
-
   if(todays.length === 0){
     list.innerHTML = '<div class="empty-state">No food logged yet today.</div>';
     return;
@@ -665,7 +905,7 @@ function renderFoodToday(){
 function deleteFood(id){
   foodEntries = foodEntries.filter(f => f.id !== id);
   saveJSON(FOOD_KEY, foodEntries);
-  renderFoodToday();
+  renderNutritionDashboard();
 }
 window.deleteFood = deleteFood;
 
@@ -704,7 +944,7 @@ function confirmAddFood(){
   closeAddFoodModal();
   document.getElementById('foodSearchInput').value = '';
   document.getElementById('foodSearchResults').innerHTML = '';
-  renderFoodToday();
+  renderNutritionDashboard();
 }
 
 async function lookupBarcode(code){
@@ -781,6 +1021,240 @@ function stopScanner(){
 }
 
 // =========================================================
+// Weight tracking + adaptive TDEE coaching
+// (Approximates MacroFactor's approach: smooth a noisy daily
+// weight trend, then back-calculate real expenditure from
+// logged intake vs. that trend, rather than a fixed formula.)
+// =========================================================
+const KCAL_PER_kg = 3500;
+const TREND_ALPHA = 0.1; // smoothing factor for the weight trend (lower = smoother/slower)
+
+function loadProfile(){ return loadObj(PROFILE_KEY); }
+function saveProfile(p){ saveObj(PROFILE_KEY, p); }
+
+function upsertWeightEntry(weightkg){
+  const t = todayISO();
+  const idx = weightEntries.findIndex(w => w.date === t);
+  if(idx >= 0){ weightEntries[idx].weight = weightkg; }
+  else { weightEntries.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), weight: weightkg, date: t, ts: Date.now() }); }
+  saveJSON(WEIGHT_KEY, weightEntries);
+}
+
+// Exponential smoothing over chronological weigh-ins to isolate
+// the real trend from day-to-day noise (water, sodium, gut contents, etc).
+function computeTrendSeries(){
+  const sorted = [...weightEntries].sort((a,b) => a.date.localeCompare(b.date));
+  let trend = null;
+  return sorted.map((w,i) => {
+    trend = (i === 0) ? w.weight : TREND_ALPHA * w.weight + (1 - TREND_ALPHA) * trend;
+    return { date: w.date, weight: w.weight, trendWeight: trend };
+  });
+}
+
+function getDailyFoodTotals(){
+  const totals = {};
+  foodEntries.forEach(f => { totals[f.date] = (totals[f.date] || 0) + f.kcal; });
+  return totals;
+}
+
+function getTodayFoodTotals(){
+  const t = todayISO();
+  return foodEntries.filter(f => f.date === t).reduce((acc, f) => {
+    acc.kcal += f.kcal; acc.protein += f.protein; acc.carbs += f.carbs; acc.fat += f.fat;
+    return acc;
+  }, { kcal:0, protein:0, carbs:0, fat:0 });
+}
+
+// Mifflin-St Jeor (imperial), used only until enough real data exists.
+function computeInitialTDEE(profile, weightkg){
+  const bmr = profile.sex === 'male'
+    ? 4.536*weightkg + 15.88*profile.heightIn - 5*profile.age + 5
+    : 4.536*weightkg + 15.88*profile.heightIn - 5*profile.age - 161;
+  const mult = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725 }[profile.activity] || 1.375;
+  return Math.round(bmr * mult);
+}
+
+// Back-calculates TDEE from logged intake vs. the trend-weight change
+// over the same window: TDEE = avg. intake - daily energy balance implied by weight change.
+function computeAdaptiveTDEE(trendSeries){
+  const trendMap = {};
+  trendSeries.forEach(t => { trendMap[t.date] = t.trendWeight; });
+  const foodTotals = getDailyFoodTotals();
+  const eligibleDates = Object.keys(trendMap).filter(d => foodTotals[d] !== undefined).sort();
+  if(eligibleDates.length < 10) return null; // need ~10+ overlapping days before trusting this
+
+  const windowDates = eligibleDates.slice(-28); // up to a 4-week rolling window
+  const first = windowDates[0], last = windowDates[windowDates.length - 1];
+  const daysSpan = (new Date(last) - new Date(first)) / 86400000;
+  if(daysSpan < 6) return null;
+
+  const weightChangekg = trendMap[last] - trendMap[first];
+  const avgIntake = windowDates.reduce((sum,d) => sum + foodTotals[d], 0) / windowDates.length;
+  const dailyEnergyBalance = (weightChangekg * KCAL_PER_kg) / daysSpan;
+  return Math.round(avgIntake - dailyEnergyBalance);
+}
+
+function computeTargets(tdee, profile, currentWeightkg){
+  let targetCalories = tdee;
+  if(profile.goal === 'lose') targetCalories = tdee - (profile.ratekgWk * KCAL_PER_kg) / 7;
+  else if(profile.goal === 'gain') targetCalories = tdee + (profile.ratekgWk * KCAL_PER_kg) / 7;
+  targetCalories = Math.max(Math.round(targetCalories), 1200); // safety floor
+
+  const proteinPerkg = profile.goal === 'gain' ? 0.8 : 1.0;
+  const proteinG = Math.round((currentWeightkg || profile.weightkg) * proteinPerkg);
+  const fatG = Math.round((targetCalories * 0.25) / 9);
+  const carbsG = Math.max(Math.round((targetCalories - proteinG*4 - fatG*9) / 4), 0);
+
+  return { targetCalories, proteinG, fatG, carbsG };
+}
+
+// Refreshes the stored target snapshot when: none exists yet, it's been
+// 7+ days since the last update (MacroFactor-style weekly check-in), the
+// estimate can finally switch from formula-based to adaptive, or refresh
+// is forced (e.g. user hits "Recalculate" or edits their profile).
+function maybeRefreshTargets(forced){
+  const profile = loadProfile();
+  if(!profile) return null;
+
+  const trendSeries = computeTrendSeries();
+  const currentWeight = trendSeries.length ? trendSeries[trendSeries.length-1].trendWeight : profile.weightkg;
+  const adaptive = computeAdaptiveTDEE(trendSeries);
+
+  let snapshot = loadObj(TDEE_KEY);
+  const now = Date.now();
+  const daysSinceUpdate = snapshot ? (now - snapshot.computedAt) / 86400000 : Infinity;
+  const shouldRecompute = forced || !snapshot || daysSinceUpdate >= 7 || (snapshot.source === 'estimate' && adaptive !== null);
+
+  if(shouldRecompute){
+    const tdeeValue = adaptive !== null ? adaptive : computeInitialTDEE(profile, currentWeight);
+    const targets = computeTargets(tdeeValue, profile, currentWeight);
+    snapshot = { tdee: tdeeValue, source: adaptive !== null ? 'adaptive' : 'estimate', computedAt: now, ...targets };
+    saveObj(TDEE_KEY, snapshot);
+  }
+  return snapshot;
+}
+
+function renderWeightChart(trendSeries){
+  const svg = document.getElementById('weightChart');
+  if(trendSeries.length === 0){
+    svg.innerHTML = '';
+    return;
+  }
+  if(trendSeries.length === 1){
+    svg.innerHTML = '<foreignObject x="0" y="0" width="100" height="40"><div xmlns="http://www.w3.org/1999/xhtml" style="color:#8B8F98; font-family:Inter,sans-serif; font-size:4px; text-align:center; padding-top:14px;">Log tomorrow to start a trend line.</div></foreignObject>';
+    return;
+  }
+  const values = trendSeries.map(t => t.trendWeight);
+  const raw = trendSeries.map(t => t.weight);
+  const allVals = values.concat(raw);
+  const min = Math.min(...allVals), max = Math.max(...allVals);
+  const range = (max - min) || 1;
+  const stepX = 100 / (trendSeries.length - 1);
+  const toXY = (val,i) => [i*stepX, 38 - ((val-min)/range)*34];
+  const trendCoords = values.map((v,i) => toXY(v,i));
+  const rawCoords = raw.map((v,i) => toXY(v,i));
+  const path = trendCoords.map((c,i) => (i===0?'M':'L') + c[0].toFixed(2) + ',' + c[1].toFixed(2)).join(' ');
+  const rawDots = rawCoords.map(c => `<circle cx="${c[0].toFixed(2)}" cy="${c[1].toFixed(2)}" r="1" fill="#8B8F98" opacity="0.55"/>`).join('');
+  const trendDots = trendCoords.map(c => `<circle cx="${c[0].toFixed(2)}" cy="${c[1].toFixed(2)}" r="1.2" fill="#E5484D"/>`).join('');
+  svg.innerHTML = `${rawDots}<path d="${path}" fill="none" stroke="#E5484D" stroke-width="0.8" vector-effect="non-scaling-stroke"/>${trendDots}`;
+}
+
+function renderNutritionDashboard(){
+  const profile = loadProfile();
+  const banner = document.getElementById('profileSetupBanner');
+  const dashboard = document.getElementById('nutritionDashboard');
+
+  if(!profile){
+    banner.style.display = 'block';
+    dashboard.style.display = 'none';
+    return;
+  }
+  banner.style.display = 'none';
+  dashboard.style.display = 'block';
+
+  const trendSeries = computeTrendSeries();
+  const snapshot = maybeRefreshTargets(false);
+
+  // Weight card
+  const todayEntry = weightEntries.find(w => w.date === todayISO());
+  document.getElementById('weightInputField').value = todayEntry ? todayEntry.weight : '';
+  const last = trendSeries[trendSeries.length - 1];
+  const trendValEl = document.getElementById('trendWeightValue');
+  const trendSubEl = document.getElementById('trendWeightSub');
+  if(last){
+    trendValEl.childNodes[0].textContent = last.trendWeight.toFixed(1) + ' kg ';
+    const weekAgoCutoff = new Date(new Date(last.date).getTime() - 7*86400000);
+    const weekAgoEntry = trendSeries.find(t => new Date(t.date) >= weekAgoCutoff) || trendSeries[0];
+    const weeklyChange = last.trendWeight - weekAgoEntry.trendWeight;
+    const sign = weeklyChange > 0 ? '+' : '';
+    trendSubEl.textContent = trendSeries.length > 1
+      ? `Trend weight · ${sign}${weeklyChange.toFixed(1)} kg / wk`
+      : 'Trend weight · log again to see a rate';
+  } else {
+    trendValEl.childNodes[0].textContent = '— ';
+    trendSubEl.textContent = 'Log a weigh-in to start a trend';
+  }
+  renderWeightChart(trendSeries);
+
+  // Targets card
+  const totals = getTodayFoodTotals();
+  if(snapshot){
+    document.getElementById('calorieProgressText').textContent = `${Math.round(totals.kcal)} / ${snapshot.targetCalories} kcal`;
+    document.getElementById('tdeeLine').textContent = snapshot.source === 'adaptive'
+      ? `Adaptive TDEE ≈ ${snapshot.tdee} kcal, from your own logs`
+      : `Initial estimate ≈ ${snapshot.tdee} kcal — refines once you've logged ~10+ days`;
+    const pct = Math.min(100, (totals.kcal / snapshot.targetCalories) * 100);
+    document.getElementById('calorieBarFill').style.width = pct + '%';
+    document.getElementById('proteinTargetText').textContent = `${Math.round(totals.protein)} / ${snapshot.proteinG} g`;
+    document.getElementById('carbsTargetText').textContent = `${Math.round(totals.carbs)} / ${snapshot.carbsG} g`;
+    document.getElementById('fatTargetText').textContent = `${Math.round(totals.fat)} / ${snapshot.fatG} g`;
+  }
+
+  renderFoodToday();
+}
+
+function openProfileModal(){
+  const profile = loadProfile();
+  if(profile){
+    document.getElementById('profileSex').value = profile.sex;
+    document.getElementById('profileAge').value = profile.age;
+    document.getElementById('profileHeight').value = profile.heightIn;
+    document.getElementById('profileWeight').value = profile.weightkg;
+    document.getElementById('profileActivity').value = profile.activity;
+    document.getElementById('profileGoal').value = profile.goal;
+    document.getElementById('profileRate').value = profile.ratekgWk;
+  }
+  toggleRateField();
+  document.getElementById('profileModal').style.display = 'flex';
+}
+function closeProfileModal(){ document.getElementById('profileModal').style.display = 'none'; }
+function toggleRateField(){
+  const goal = document.getElementById('profileGoal').value;
+  document.getElementById('profileRateField').style.display = goal === 'maintain' ? 'none' : 'block';
+}
+function saveProfileForm(){
+  const sex = document.getElementById('profileSex').value;
+  const age = parseInt(document.getElementById('profileAge').value, 10);
+  const heightIn = parseFloat(document.getElementById('profileHeight').value);
+  const weightkg = parseFloat(document.getElementById('profileWeight').value);
+  const activity = document.getElementById('profileActivity').value;
+  const goal = document.getElementById('profileGoal').value;
+  const ratekgWk = parseFloat(document.getElementById('profileRate').value) || 0;
+
+  if(!age || !heightIn || !weightkg){
+    alert('Fill in age, height, and weight.');
+    return;
+  }
+  saveProfile({ sex, age, heightIn, weightkg, activity, goal, ratekgWk });
+  if(!weightEntries.find(w => w.date === todayISO())){
+    upsertWeightEntry(weightkg); // seed today's weigh-in from the form if not already logged
+  }
+  maybeRefreshTargets(true);
+  closeProfileModal();
+  renderNutritionDashboard();
+}
+
+// =========================================================
 // Tab navigation
 // =========================================================
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -790,7 +1264,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('view-' + btn.dataset.view).classList.add('active');
     if(btn.dataset.view === 'progress') renderProgress();
-    if(btn.dataset.view === 'food') renderFoodToday();
+    if(btn.dataset.view === 'food') renderNutritionDashboard();
   });
 });
 document.getElementById('progressExercise').addEventListener('change', renderProgress);
@@ -807,6 +1281,22 @@ document.getElementById('foodSearchInput').addEventListener('input', (e) => {
   searchDebounceTimer = setTimeout(() => runFoodSearch(q), 400);
 });
 
+document.getElementById('logWeightBtn').addEventListener('click', () => {
+  const val = parseFloat(document.getElementById('weightInputField').value);
+  if(isNaN(val) || val <= 0){ alert('Enter a valid weight.'); return; }
+  upsertWeightEntry(val);
+  renderNutritionDashboard();
+});
+document.getElementById('recalcTargetsBtn').addEventListener('click', () => {
+  maybeRefreshTargets(true);
+  renderNutritionDashboard();
+});
+document.getElementById('openProfileBtn').addEventListener('click', openProfileModal);
+document.getElementById('editProfileBtn').addEventListener('click', openProfileModal);
+document.getElementById('cancelProfileBtn').addEventListener('click', closeProfileModal);
+document.getElementById('saveProfileBtn').addEventListener('click', saveProfileForm);
+document.getElementById('profileGoal').addEventListener('change', toggleRateField);
+
 // =========================================================
 // Init
 // =========================================================
@@ -815,7 +1305,7 @@ function renderAll(){
   renderTodayList();
   renderHistory();
   renderProgress();
-  renderFoodToday();
+  renderNutritionDashboard();
 }
 
 document.getElementById('todayDate').textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
